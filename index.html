@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Scrollytelling Timeline - Smooth Fade</title>
+  <title>Scrollytelling Timeline - Smooth Fade (Mobile fixed)</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&display=swap" rel="stylesheet">
@@ -26,13 +26,11 @@
     .progress{ position:absolute; left:0; top:28px; height:6px; border-radius:999px; background:#111; width:0%; transition: width 240ms ease; }
     .playhead{ position:absolute; top:18px; left:0%; width:18px; height:18px; border-radius:50%; background:#111; transform:translateX(-50%); transition:left 240ms ease; }
 
-    /* Tick marks */
     .ticks{ position:absolute; left:0; right:0; top:20px; height:24px; pointer-events:none; }
     .tick{ position:absolute; top:0; width:10px; height:24px; transform:translateX(-50%); display:flex; align-items:flex-end; justify-content:center; }
     .tick::before{ content:""; width:2px; height:14px; border-radius:2px; background:#bbb; }
     .tick.is-active::before{ background:#111; height:18px; }
 
-    /* Centered time below bar */
     .activeTimeCenter{
       position:absolute; left:50%; top:46px; transform:translateX(-50%);
       font-size: 13px; color:#444; font-weight:600; white-space:nowrap;
@@ -40,7 +38,7 @@
 
     .labels{ margin-top: 8px; display:flex; justify-content:space-between; font-size:12px; color:#666; }
 
-    /* ===== Smooth cross-fade background stage ===== */
+    /* ===== Cross-fade background stage ===== */
     .bgStage{
       position: sticky;
       top: 108px; /* below header */
@@ -57,22 +55,18 @@
       position:absolute; inset:0;
       background-size: cover;
       background-position: center;
-      will-change: opacity, transform;
+      will-change: opacity;
       transition: opacity 520ms ease;
       opacity: 0;
-      transform: scale(1.02); /* tiny “cinematic” feel */
     }
-    .bgLayer.is-visible{
-      opacity: 1;
-    }
+    .bgLayer.is-visible{ opacity: 1; }
 
-    /* Overlay for readability */
     .bgOverlay{
       position:absolute; inset:0;
       background: linear-gradient(
         to bottom,
-        rgba(0,0,0,.22) 0%,
-        rgba(0,0,0,.45) 45%,
+        rgba(0,0,0,.20) 0%,
+        rgba(0,0,0,.42) 45%,
         rgba(0,0,0,.68) 100%
       );
       z-index: 3;
@@ -82,21 +76,19 @@
     /* Steps layer */
     .scrolly{
       position: relative;
-      z-index: 10; /* above background */
+      z-index: 10;
       max-width: 1200px;
       margin: 0 auto;
-      padding: 18px 16px 80px;
+      padding: 18px 16px 90px;
     }
 
-    /* Full viewport steps so cards rise then leave naturally */
     .step{
-      min-height: 100vh;
+      min-height: 110vh; /* give more scroll distance */
       display:flex;
       align-items:flex-end;
       position: relative;
     }
 
-    /* Small left card */
     .card{
       position: sticky;
       bottom: 22px;
@@ -111,13 +103,11 @@
       box-shadow: 0 14px 36px rgba(0,0,0,.30);
       backdrop-filter: blur(7px);
 
-      /* entry animation state */
       opacity: 0;
-      transform: translateY(28px);
-      transition: opacity 320ms ease, transform 320ms ease;
+      transform: translateY(22px);
+      transition: opacity 280ms ease, transform 280ms ease;
       will-change: opacity, transform;
 
-      /* safety for long text */
       max-height: 55vh;
       overflow-y: auto;
     }
@@ -131,9 +121,10 @@
     .card h3{ margin:0 0 8px 0; font-size: 20px; font-weight: 800; color:#111; }
     .card p{ margin:0; line-height: 1.7; font-size: 14px; color:#222; }
 
-    /* Mobile sizing */
+    /* Mobile tuning */
     @media (max-width: 900px){
       .bgStage{ top: 92px; }
+      .step{ min-height: 135vh; } /* IMPORTANT: more scroll room on mobile */
       .card{ width: 320px; bottom: 16px; }
     }
     @media (max-width: 420px){
@@ -162,14 +153,12 @@
     </div>
   </header>
 
-  <!-- Cross-fade background -->
-  <div class="bgStage" id="bgStage" aria-hidden="true">
+  <div class="bgStage" aria-hidden="true">
     <div class="bgLayer is-visible" id="bgA"></div>
     <div class="bgLayer" id="bgB"></div>
     <div class="bgOverlay"></div>
   </div>
 
-  <!-- Scrolling steps -->
   <main class="scrolly">
     <section id="steps"></section>
   </main>
@@ -179,56 +168,17 @@
     if ("scrollRestoration" in history) history.scrollRestoration = "manual";
     window.addEventListener("load", () => window.scrollTo(0, 0));
 
-    const SCENES = [
-      { id:"s1",  progress:0/11,  timeLabel:"১৮ ডিসেম্বর ১০:০২ PM", titleBn:"প্রথম আহ্বান দেখা যায়",
-        longText:"কিছু পোস্টে সরাসরি হামলার আহ্বান/উসকানি ভাষা শুরু হয়। (ডামি লং টেক্সট)",
-        image:"assets/scene1.jpg"
-      },
-      { id:"s2",  progress:1/11,  timeLabel:"১৮ ডিসেম্বর ১০:২০ PM", titleBn:"বার্তা ছড়াতে শুরু",
-        longText:"বিভিন্ন গ্রুপ/পেজে একই বার্তা কপি-পেস্ট হয়ে ছড়াতে থাকে। (ডামি লং টেক্সট)",
-        image:"assets/scene2.jpg"
-      },
-      { id:"s3",  progress:2/11,  timeLabel:"১৮ ডিসেম্বর ১০:৪০ PM", titleBn:"বৈধতা দেওয়ার ভাষা",
-        longText:"‘প্রাপ্য ছিল’ ধরনের যুক্তি দিয়ে ঘটনাকে বৈধতা দেওয়ার প্রবণতা বাড়ে। (ডামি লং টেক্সট)",
-        image:"assets/scene3.jpg"
-      },
-      { id:"s4",  progress:3/11,  timeLabel:"১৮ ডিসেম্বর ১১:০৫ PM", titleBn:"লক্ষ্য নির্ধারণ/ট্যাগিং",
-        longText:"নির্দিষ্ট ব্যক্তি/প্রতিষ্ঠানের নাম উল্লেখ ও ট্যাগিং বাড়তে থাকে। (ডামি লং টেক্সট)",
-        image:"assets/scene4.jpg"
-      },
-      { id:"s5",  progress:4/11,  timeLabel:"১৮ ডিসেম্বর ১১:৩০ PM", titleBn:"কলে টু অ্যাকশন",
-        longText:"‘চল’, ‘এখনই’, ‘যেতে হবে’— সরাসরি কর্মসূচির ইঙ্গিত জোরালো হয়। (ডামি লং টেক্সট)",
-        image:"assets/scene5.jpg"
-      },
-      { id:"s6",  progress:5/11,  timeLabel:"১৮ ডিসেম্বর ১১:৪৫ PM", titleBn:"ছবি/ভিডিও ছড়ায়",
-        longText:"ভিডিও/ছবি শেয়ার বাড়ে এবং ক্যাপশনে ভাষা আরও তীব্র হয়। (ডামি লং টেক্সট)",
-        image:"assets/scene6.jpg"
-      },
-      { id:"s7",  progress:6/11,  timeLabel:"১৯ ডিসেম্বর ১২:৩০ AM", titleBn:"গুজব/দাবি যোগ",
-        longText:"যাচাইহীন দাবি, অতিরঞ্জিত তথ্য এবং বিভ্রান্তিকর বর্ণনা যুক্ত হতে থাকে। (ডামি লং টেক্সট)",
-        image:"assets/scene7.jpg"
-      },
-      { id:"s8",  progress:7/11,  timeLabel:"১৯ ডিসেম্বর ০২:১৫ AM", titleBn:"মিম/ব্যঙ্গ",
-        longText:"মিম/ব্যঙ্গচিত্রের ঢেউ তৈরি হয়, যা দ্রুত ভাইরাল হয়। (ডামি লং টেক্সট)",
-        image:"assets/scene8.jpg"
-      },
-      { id:"s9",  progress:8/11,  timeLabel:"১৯ ডিসেম্বর ০৭:৩০ AM", titleBn:"প্রতিরোধী কণ্ঠ",
-        longText:"কিছু পোস্ট বিরোধিতা করে, শান্ত থাকার আহ্বান জানায়। (ডামি লং টেক্সট)",
-        image:"assets/scene9.jpg"
-      },
-      { id:"s10", progress:9/11,  timeLabel:"১৯ ডিসেম্বর ০৯:৩০ AM", titleBn:"উদযাপন ও পুনঃশেয়ার",
-        longText:"কিছু পোস্ট উদযাপন করে, অন্যরা পুনঃশেয়ার ও প্রশংসা করে। (ডামি লং টেক্সট)",
-        image:"assets/scene10.jpg"
-      },
-      { id:"s11", progress:10/11, timeLabel:"১৯ ডিসেম্বর ০১:৪৫ PM", titleBn:"বিতর্ক/পাল্টাপাল্টি",
-        longText:"কমেন্টে তর্ক, পাল্টা অভিযোগ, স্ক্রিনশট-যুদ্ধ দেখা যায়। (ডামি লং টেক্সট)",
-        image:"assets/scene11.jpg"
-      },
-      { id:"s12", progress:11/11, timeLabel:"১৯ ডিসেম্বর ০৬:০০ PM", titleBn:"শেষ পর্যায়",
-        longText:"সমর্থন/বিরোধিতা/উদযাপন— একাধিক ধারার পোস্ট একসাথে স্থিতি পায়। (ডামি লং টেক্সট)",
-        image:"assets/scene12.jpg"
-      }
-    ];
+    const SCENES = Array.from({length: 12}, (_, i) => {
+      const n = i + 1;
+      return {
+        id: "s" + n,
+        progress: i / 11,
+        timeLabel: (n===11) ? "১৯ ডিসেম্বর ০১:৪৫ PM" : "ডামি সময়",
+        titleBn: (n===11) ? "বিতর্ক/পাল্টাপাল্টি" : "ডামি শিরোনাম " + n,
+        longText: "ডামি লং টেক্সট: এই অংশে বিস্তারিত বর্ণনা থাকবে। আপনি চাইলে এখানে ৫০/১০০ শব্দও দিতে পারবেন।",
+        image: "assets/scene" + n + ".jpg"
+      };
+    });
 
     // Build steps with cards
     const stepsRoot = document.getElementById("steps");
@@ -264,73 +214,28 @@
     // Crossfade backgrounds
     const bgA = document.getElementById("bgA");
     const bgB = document.getElementById("bgB");
-    let front = bgA;
-    let back = bgB;
-    let currentIdx = 0;
+    let front = bgA, back = bgB;
+    let currentIdx = -1;
 
     function crossFadeTo(url){
-      if (!url) return;
-
-      // set next image on back layer
       back.style.backgroundImage = `url("${url}")`;
-
-      // show back, hide front
       back.classList.add("is-visible");
       front.classList.remove("is-visible");
-
-      // swap references
       const tmp = front; front = back; back = tmp;
-    }
-
-    // Fade-out card as it approaches mid/top (smooth exit)
-    function updateCardFades(){
-      const steps = document.querySelectorAll(".step");
-      const vh = window.innerHeight || 800;
-      const fadeStart = vh * 0.55;   // start fading around mid
-      const fadeEnd   = vh * 0.15;   // almost gone near top
-
-      steps.forEach(step => {
-        const card = step.querySelector(".card");
-        if (!card) return;
-
-        const rect = step.getBoundingClientRect();
-        // step "progress" inside viewport: 0 at bottom, 1 at top
-        // use rect.top to determine fade
-        const t = rect.top; // px from top
-        let alpha = 1;
-
-        if (t < fadeStart) {
-          // map [fadeStart..fadeEnd] -> [1..0]
-          const clamped = Math.max(fadeEnd, Math.min(fadeStart, t));
-          const p = (clamped - fadeEnd) / (fadeStart - fadeEnd); // 0..1
-          alpha = p;
-        }
-
-        // only fade the active one; others can stay hidden via CSS
-        if (step.classList.contains("is-active")) {
-          card.style.opacity = String(alpha);
-          card.style.transform = `translateY(${(1 - alpha) * -10}px)`;
-        } else {
-          card.style.opacity = "";
-          card.style.transform = "";
-        }
-      });
-
-      requestAnimationFrame(updateCardFades);
     }
 
     function renderScene(idx){
       const s = SCENES[idx];
       const pct = Math.max(0, Math.min(1, s.progress)) * 100;
 
-      // background crossfade only if changed
       if (idx !== currentIdx) {
-        crossFadeTo(s.image);
+        if (currentIdx === -1) {
+          front.style.backgroundImage = `url("${s.image}")`;
+          front.classList.add("is-visible");
+        } else {
+          crossFadeTo(s.image);
+        }
         currentIdx = idx;
-      } else if (!front.style.backgroundImage) {
-        // initial load
-        front.style.backgroundImage = `url("${s.image}")`;
-        front.classList.add("is-visible");
       }
 
       playhead.style.left = pct + "%";
@@ -340,27 +245,58 @@
       activeTime.textContent = "সময়: " + (s.timeLabel || "—");
     }
 
+    // Smooth fade-out based on real step progress (mobile-safe)
+    function setCardProgress(stepEl, progress){
+      const card = stepEl.querySelector(".card");
+      if (!card) return;
+
+      // Keep fully visible until ~65% of the step
+      const hold = 0.65;
+      const fadeSpan = 0.30; // fade from 0.65 -> 0.95
+      let alpha = 1;
+
+      if (progress > hold) {
+        const t = Math.min(1, (progress - hold) / fadeSpan);
+        alpha = 1 - t; // down to 0
+      }
+
+      // Ensure it never instantly disappears
+      alpha = Math.max(0.05, alpha);
+
+      card.style.opacity = String(alpha);
+      card.style.transform = `translateY(${(1 - alpha) * -12}px)`;
+    }
+
     const scroller = scrollama();
-    scroller.setup({ step: ".step", offset: 0.6 })
+    scroller.setup({ step: ".step", offset: 0.6, progress: true })
       .onStepEnter(({ element, index }) => {
         document.querySelectorAll(".step").forEach(x => x.classList.remove("is-active"));
         element.classList.add("is-active");
         renderScene(index);
+        setCardProgress(element, 0);
+      })
+      .onStepProgress(({ element, progress }) => {
+        // progress: 0..1 within the step
+        setCardProgress(element, progress);
+      })
+      .onStepExit(({ element }) => {
+        // reset styles so next time it enters it's clean
+        const card = element.querySelector(".card");
+        if (card) {
+          card.style.opacity = "";
+          card.style.transform = "";
+        }
       });
 
     // initial
     renderScene(0);
     document.querySelector(".step")?.classList.add("is-active");
 
-    // smooth exit fade loop
-    requestAnimationFrame(updateCardFades);
-
-    // Resize fixes
     function onResize(){ scroller.resize(); }
     window.addEventListener("resize", onResize);
     window.addEventListener("orientationchange", onResize);
-    setTimeout(onResize, 50);
-    setTimeout(onResize, 300);
+    setTimeout(onResize, 80);
+    setTimeout(onResize, 350);
 
     function escapeHtml(str){
       return String(str ?? "").replace(/[&<>"']/g, ch => ({
