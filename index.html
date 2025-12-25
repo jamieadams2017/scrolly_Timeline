@@ -24,6 +24,35 @@
     .topline{ display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; }
     .title{ font-weight: 800; }
 
+    /* ===== ADDED: Centered big title + subtitle ===== */
+    .topline-center{
+      justify-content: center;
+      text-align: center;
+      width: 100%;
+    }
+    .headerText{
+      width: 100%;
+      display:flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .title{
+      font-weight: 900;
+      font-size: 26px;
+      line-height: 1.2;
+    }
+    .subtitle{
+      font-size: 13px;
+      color: #666;
+      font-weight: 600;
+    }
+    @media (max-width: 900px){
+      .title{ font-size: 20px; }
+      .subtitle{ font-size: 12px; }
+    }
+    /* =============================================== */
+
     .timeline-wrap{
       position: relative;
       height: 86px;
@@ -119,7 +148,7 @@
       opacity: 0;            /* controlled by is-visible */
     }
 
-    /* ===== Added polish (as requested) ===== */
+    /* ===== Added polish (as requested earlier) ===== */
     .bgMain{
       object-fit: contain;
       padding: 4vh 6vw;   /* makes square image feel bigger on wide screens */
@@ -129,7 +158,7 @@
         padding: 0;
       }
     }
-    /* ====================================== */
+    /* ============================================= */
 
     .bgOverlay{
       position:absolute; inset:0;
@@ -199,43 +228,16 @@
     @media (max-width: 420px){
       .card{ width: calc(100% - 20px); }
     }
-    .topline-center{
-  justify-content: center;
-  text-align: center;
-  }
-
-  .headerText{
-    width: 100%;
-    display:flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .title{
-    font-weight: 900;
-    font-size: 26px;     /* bigger */
-    line-height: 1.2;
-  }
-  
-  .subtitle{
-    font-size: 13px;     /* small */
-    color: #666;
-    font-weight: 600;
-  }
-  @media (max-width: 900px){
-    .title{ font-size: 20px; }
-    .subtitle{ font-size: 12px; }
-  }
   </style>
 </head>
 
 <body>
   <header class="timeline-sticky">
+    <!-- CHANGED: centered block + subtitle line (everything else intact) -->
     <div class="topline topline-center">
       <div class="headerText">
         <div class="title">ঢাকা: সংবাদপত্র অফিসে হামলা — স্ক্রল টাইমলাইন</div>
-        <div class="subtitle">এখানে ছোট সাবটাইটেল লিখুন (তারিখ/সূত্র/সংক্ষিপ্ত বর্ণনা)</div>
+        <div class="subtitle">এখানে ছোট সাবটাইটেল লিখুন (তারিখ, সূত্র বা সংক্ষিপ্ত বর্ণনা)</div>
       </div>
     </div>
 
