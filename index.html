@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Scrollytelling Timeline - BG + Left Card</title>
+  <title>Scrollytelling Timeline - Smooth Fade</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&display=swap" rel="stylesheet">
@@ -40,56 +40,68 @@
 
     .labels{ margin-top: 8px; display:flex; justify-content:space-between; font-size:12px; color:#666; }
 
-    /* Full-screen sticky background image */
+    /* ===== Smooth cross-fade background stage ===== */
     .bgStage{
       position: sticky;
       top: 108px; /* below header */
       height: calc(100dvh - 126px);
       z-index: 1;
-      background: #111;
-      background-size: cover;
-      background-position: center;
-      transition: background-image 180ms ease;
+      overflow: hidden;
+      background:#111;
     }
     @supports not (height: 100dvh){
       .bgStage{ height: calc(100vh - 126px); }
     }
 
-    /* overlay for readability */
+    .bgLayer{
+      position:absolute; inset:0;
+      background-size: cover;
+      background-position: center;
+      will-change: opacity, transform;
+      transition: opacity 520ms ease;
+      opacity: 0;
+      transform: scale(1.02); /* tiny “cinematic” feel */
+    }
+    .bgLayer.is-visible{
+      opacity: 1;
+    }
+
+    /* Overlay for readability */
     .bgOverlay{
       position:absolute; inset:0;
       background: linear-gradient(
         to bottom,
-        rgba(0,0,0,.30) 0%,
-        rgba(0,0,0,.45) 40%,
-        rgba(0,0,0,.65) 100%
+        rgba(0,0,0,.22) 0%,
+        rgba(0,0,0,.45) 45%,
+        rgba(0,0,0,.68) 100%
       );
+      z-index: 3;
+      pointer-events:none;
     }
 
-    /* Steps layer (only triggers + card) */
+    /* Steps layer */
     .scrolly{
       position: relative;
-      z-index: 2;
+      z-index: 10; /* above background */
       max-width: 1200px;
       margin: 0 auto;
       padding: 18px 16px 80px;
     }
 
+    /* Full viewport steps so cards rise then leave naturally */
     .step{
-      min-height: 100vh;   /* key: full viewport so the card can "rise & leave" */
-      display: flex;
-      align-items: flex-end; /* card anchored to bottom area */
+      min-height: 100vh;
+      display:flex;
+      align-items:flex-end;
       position: relative;
     }
 
-    /* The small left card */
+    /* Small left card */
     .card{
       position: sticky;
-      bottom: 22px;       /* stays near bottom while in this step */
-      left: 0;
+      bottom: 22px;
       width: 360px;
       max-width: calc(100% - 32px);
-      margin-left: 0;
       margin-right: auto;
 
       background: rgba(240,240,240,.78);
@@ -97,40 +109,35 @@
       border-radius: 18px;
       padding: 14px 14px 16px;
       box-shadow: 0 14px 36px rgba(0,0,0,.30);
-      backdrop-filter: blur(6px);
+      backdrop-filter: blur(7px);
 
+      /* entry animation state */
       opacity: 0;
-      transform: translateY(26px);
-      transition: opacity 250ms ease, transform 250ms ease;
+      transform: translateY(28px);
+      transition: opacity 320ms ease, transform 320ms ease;
+      will-change: opacity, transform;
+
+      /* safety for long text */
+      max-height: 55vh;
+      overflow-y: auto;
     }
 
-    /* When step becomes active: card "comes from bottom" */
     .step.is-active .card{
       opacity: 1;
       transform: translateY(0);
-      animation: popIn 420ms ease both;
-    }
-    @keyframes popIn{
-      from{ opacity:0; transform: translateY(30px); }
-      to{ opacity:1; transform: translateY(0); }
     }
 
     .when{ font-size: 12px; color:#111; opacity:.75; margin-bottom: 6px; }
     .card h3{ margin:0 0 8px 0; font-size: 20px; font-weight: 800; color:#111; }
     .card p{ margin:0; line-height: 1.7; font-size: 14px; color:#222; }
 
-    /* Mobile: keep card smaller and left padded */
+    /* Mobile sizing */
     @media (max-width: 900px){
       .bgStage{ top: 92px; }
-      .card{
-        width: 320px; /* a bit smaller */
-        bottom: 16px;
-      }
+      .card{ width: 320px; bottom: 16px; }
     }
     @media (max-width: 420px){
-      .card{
-        width: calc(100% - 20px);
-      }
+      .card{ width: calc(100% - 20px); }
     }
   </style>
 </head>
@@ -155,8 +162,10 @@
     </div>
   </header>
 
-  <!-- Sticky background -->
+  <!-- Cross-fade background -->
   <div class="bgStage" id="bgStage" aria-hidden="true">
+    <div class="bgLayer is-visible" id="bgA"></div>
+    <div class="bgLayer" id="bgB"></div>
     <div class="bgOverlay"></div>
   </div>
 
@@ -221,7 +230,7 @@
       }
     ];
 
-    // Build steps: each step contains a small card (left)
+    // Build steps with cards
     const stepsRoot = document.getElementById("steps");
     SCENES.forEach((s, idx) => {
       const el = document.createElement("div");
@@ -237,7 +246,7 @@
       stepsRoot.appendChild(el);
     });
 
-    // Build ticks
+    // Ticks
     const ticksRoot = document.getElementById("ticks");
     const tickEls = [];
     SCENES.forEach((s) => {
@@ -248,25 +257,86 @@
       tickEls.push(t);
     });
 
-    const bgStage = document.getElementById("bgStage");
     const playhead = document.getElementById("playhead");
     const progressBar = document.getElementById("progress");
     const activeTime = document.getElementById("activeTime");
+
+    // Crossfade backgrounds
+    const bgA = document.getElementById("bgA");
+    const bgB = document.getElementById("bgB");
+    let front = bgA;
+    let back = bgB;
+    let currentIdx = 0;
+
+    function crossFadeTo(url){
+      if (!url) return;
+
+      // set next image on back layer
+      back.style.backgroundImage = `url("${url}")`;
+
+      // show back, hide front
+      back.classList.add("is-visible");
+      front.classList.remove("is-visible");
+
+      // swap references
+      const tmp = front; front = back; back = tmp;
+    }
+
+    // Fade-out card as it approaches mid/top (smooth exit)
+    function updateCardFades(){
+      const steps = document.querySelectorAll(".step");
+      const vh = window.innerHeight || 800;
+      const fadeStart = vh * 0.55;   // start fading around mid
+      const fadeEnd   = vh * 0.15;   // almost gone near top
+
+      steps.forEach(step => {
+        const card = step.querySelector(".card");
+        if (!card) return;
+
+        const rect = step.getBoundingClientRect();
+        // step "progress" inside viewport: 0 at bottom, 1 at top
+        // use rect.top to determine fade
+        const t = rect.top; // px from top
+        let alpha = 1;
+
+        if (t < fadeStart) {
+          // map [fadeStart..fadeEnd] -> [1..0]
+          const clamped = Math.max(fadeEnd, Math.min(fadeStart, t));
+          const p = (clamped - fadeEnd) / (fadeStart - fadeEnd); // 0..1
+          alpha = p;
+        }
+
+        // only fade the active one; others can stay hidden via CSS
+        if (step.classList.contains("is-active")) {
+          card.style.opacity = String(alpha);
+          card.style.transform = `translateY(${(1 - alpha) * -10}px)`;
+        } else {
+          card.style.opacity = "";
+          card.style.transform = "";
+        }
+      });
+
+      requestAnimationFrame(updateCardFades);
+    }
 
     function renderScene(idx){
       const s = SCENES[idx];
       const pct = Math.max(0, Math.min(1, s.progress)) * 100;
 
-      // Change background image
-      bgStage.style.backgroundImage = `url("${s.image}")`;
+      // background crossfade only if changed
+      if (idx !== currentIdx) {
+        crossFadeTo(s.image);
+        currentIdx = idx;
+      } else if (!front.style.backgroundImage) {
+        // initial load
+        front.style.backgroundImage = `url("${s.image}")`;
+        front.classList.add("is-visible");
+      }
 
-      // Timeline UI
       playhead.style.left = pct + "%";
       progressBar.style.width = pct + "%";
-
       tickEls.forEach(x => x.classList.remove("is-active"));
       tickEls[idx]?.classList.add("is-active");
-
       activeTime.textContent = "সময়: " + (s.timeLabel || "—");
     }
 
@@ -282,7 +352,10 @@
     renderScene(0);
     document.querySelector(".step")?.classList.add("is-active");
 
-    // resize (mobile stability)
+    // smooth exit fade loop
+    requestAnimationFrame(updateCardFades);
+
+    // Resize fixes
     function onResize(){ scroller.resize(); }
     window.addEventListener("resize", onResize);
     window.addEventListener("orientationchange", onResize);
