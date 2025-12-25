@@ -119,6 +119,18 @@
       opacity: 0;            /* controlled by is-visible */
     }
 
+    /* ===== Added polish (as requested) ===== */
+    .bgMain{
+      object-fit: contain;
+      padding: 4vh 6vw;   /* makes square image feel bigger on wide screens */
+    }
+    @media (max-width:900px){
+      .bgMain{
+        padding: 0;
+      }
+    }
+    /* ====================================== */
+
     .bgOverlay{
       position:absolute; inset:0;
       background: linear-gradient(
