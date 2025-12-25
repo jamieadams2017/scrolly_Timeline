@@ -88,8 +88,10 @@
 
     .bgLayer{
       position:absolute; inset:0;
-      background-size: cover;
-      background-position: center;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center center;
+      background-color: #000;
       will-change: opacity;
       transition: opacity 520ms ease;
       opacity: 0;
