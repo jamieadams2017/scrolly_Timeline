@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Scrollytelling Timeline - Interactive Timeline</title>
+  <title>Scrollytelling Timeline (Full-screen BG, Mobile-safe)</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&display=swap" rel="stylesheet">
@@ -25,7 +25,7 @@
       position: relative;
       height: 86px;
       margin-top: 10px;
-      touch-action: pan-y; /* allow horizontal dragging without page hijack */
+      touch-action: pan-y;
       user-select: none;
     }
     .track{
@@ -37,14 +37,14 @@
       position:absolute; left:0; top:28px;
       height:6px; border-radius:999px; background:#111;
       width:0%;
-      transition: width 120ms linear;
+      transition: width 140ms linear;
       pointer-events:none;
     }
     .playhead{
       position:absolute; top:18px; left:0%;
       width:18px; height:18px; border-radius:50%;
       background:#111; transform:translateX(-50%);
-      transition: left 120ms linear;
+      transition:left 140ms linear;
       cursor: grab;
       touch-action: none;
     }
@@ -73,32 +73,30 @@
 
     .labels{ margin-top: 8px; display:flex; justify-content:space-between; font-size:12px; color:#666; }
 
-    /* ===== Cross-fade background stage ===== */
+    /* ===== Background stage (mobile-safe viewport units) ===== */
     .bgStage{
       position: sticky;
-      top: 108px;
-      height: calc(100dvh - 126px);
+      top: 108px;                 /* below header */
+      height: calc(100svh - 126px); /* stable on mobile (prevents top black gap) */
       z-index: 1;
       overflow: hidden;
-      background:#111;
+      background:#000;
     }
-    @supports not (height: 100dvh){
+    @supports not (height: 100svh){
       .bgStage{ height: calc(100vh - 126px); }
     }
 
+    /* ===== Cross-fade background layers (FULLSCREEN via cover) ===== */
     .bgLayer{
       position:absolute; inset:0;
-      
-      background-image: var(--bg);
+      background-size: cover;              /* <-- IMPORTANT: fills screen */
+      background-position: center center;  /* consistent crop */
       background-repeat: no-repeat;
-      background-position: center center;
-
-      background-size: auto 140%;
       background-color:#000;
 
       will-change: opacity;
       transition: opacity 520ms ease;
-      opacity:0;
+      opacity: 0;
     }
     .bgLayer.is-visible{ opacity: 1; }
 
@@ -106,9 +104,9 @@
       position:absolute; inset:0;
       background: linear-gradient(
         to bottom,
-        rgba(0,0,0,.20) 0%,
-        rgba(0,0,0,.42) 45%,
-        rgba(0,0,0,.68) 100%
+        rgba(0,0,0,.18) 0%,
+        rgba(0,0,0,.40) 45%,
+        rgba(0,0,0,.66) 100%
       );
       z-index: 3;
       pointer-events:none;
@@ -130,6 +128,7 @@
       position: relative;
     }
 
+    /* Left card */
     .card{
       position: sticky;
       bottom: 22px;
@@ -137,7 +136,7 @@
       max-width: calc(100% - 32px);
       margin-right: auto;
 
-      background: rgba(240,240,240,.78);
+      background: rgba(240,240,240,.80);
       border: 1px solid rgba(255,255,255,.55);
       border-radius: 18px;
       padding: 14px 14px 16px;
@@ -163,8 +162,8 @@
     .card p{ margin:0; line-height: 1.7; font-size: 14px; color:#222; }
 
     @media (max-width: 900px){
-      .bgStage{ top: 92px; }
-      .step{ min-height: 135vh; }
+      .bgStage{ top: 92px; }      /* header is shorter on mobile */
+      .step{ min-height: 135vh; } /* more scroll distance */
       .card{ width: 320px; bottom: 16px; }
     }
     @media (max-width: 420px){
@@ -182,7 +181,8 @@
     <div class="timeline-wrap" id="timelineWrap">
       <div class="track" id="track" aria-label="Timeline track"></div>
       <div class="progress" id="progress"></div>
-      <div class="playhead" id="playhead" role="slider" aria-label="Timeline playhead" aria-valuemin="0" aria-valuemax="11" aria-valuenow="0" tabindex="0"></div>
+      <div class="playhead" id="playhead" role="slider" aria-label="Timeline playhead"
+           aria-valuemin="0" aria-valuemax="11" aria-valuenow="0" tabindex="0"></div>
       <div class="ticks" id="ticks"></div>
       <div class="activeTimeCenter" id="activeTime">সময়: —</div>
     </div>
@@ -208,20 +208,60 @@
     if ("scrollRestoration" in history) history.scrollRestoration = "manual";
     window.addEventListener("load", () => window.scrollTo(0, 0));
 
-    // ===== DATA =====
-    const SCENES = Array.from({length: 12}, (_, i) => {
-      const n = i + 1;
-      return {
-        id: "s" + n,
-        progress: i / 11,
-        timeLabel: "সময় " + n,
-        titleBn: "শিরোনাম " + n,
-        longText: "ডামি লং টেক্সট: এখানে আপনার বিস্তারিত টেক্সট থাকবে। (স্টেপ " + n + ")",
-        image: "assets/scene" + n + ".jpg"
-      };
-    });
+    // ===== DATA (edit these) =====
+    // Use your *_master.jpg images here
+    const SCENES = [
+      { id:"s1",  progress:0/11,  timeLabel:"১৮ ডিসেম্বর ১০:০২ PM", titleBn:"শিরোনাম ১",
+        longText:"এখানে আপনার বিস্তারিত টেক্সট থাকবে (স্টেপ ১)।",
+        image:"assets/scene1_master.jpg"
+      },
+      { id:"s2",  progress:1/11,  timeLabel:"১৮ ডিসেম্বর ১০:২০ PM", titleBn:"শিরোনাম ২",
+        longText:"এখানে আপনার বিস্তারিত টেক্সট থাকবে (স্টেপ ২)।",
+        image:"assets/scene2_master.jpg"
+      },
+      { id:"s3",  progress:2/11,  timeLabel:"১৮ ডিসেম্বর ১০:৪০ PM", titleBn:"শিরোনাম ৩",
+        longText:"এখানে আপনার বিস্তারিত টেক্সট থাকবে (স্টেপ ৩)।",
+        image:"assets/scene3_master.jpg"
+      },
+      { id:"s4",  progress:3/11,  timeLabel:"১৮ ডিসেম্বর ১১:০৫ PM", titleBn:"শিরোনাম ৪",
+        longText:"এখানে আপনার বিস্তারিত টেক্সট থাকবে (স্টেপ ৪)।",
+        image:"assets/scene4_master.jpg"
+      },
+      { id:"s5",  progress:4/11,  timeLabel:"১৮ ডিসেম্বর ১১:৩০ PM", titleBn:"শিরোনাম ৫",
+        longText:"এখানে আপনার বিস্তারিত টেক্সট থাকবে (স্টেপ ৫)।",
+        image:"assets/scene5_master.jpg"
+      },
+      { id:"s6",  progress:5/11,  timeLabel:"১৮ ডিসেম্বর ১১:৪৫ PM", titleBn:"শিরোনাম ৬",
+        longText:"এখানে আপনার বিস্তারিত টেক্সট থাকবে (স্টেপ ৬)।",
+        image:"assets/scene6_master.jpg"
+      },
+      { id:"s7",  progress:6/11,  timeLabel:"১৯ ডিসেম্বর ১২:৩০ AM", titleBn:"শিরোনাম ৭",
+        longText:"এখানে আপনার বিস্তারিত টেক্সট থাকবে (স্টেপ ৭)।",
+        image:"assets/scene7_master.jpg"
+      },
+      { id:"s8",  progress:7/11,  timeLabel:"১৯ ডিসেম্বর ০২:১৫ AM", titleBn:"শিরোনাম ৮",
+        longText:"এখানে আপনার বিস্তারিত টেক্সট থাকবে (স্টেপ ৮)।",
+        image:"assets/scene8_master.jpg"
+      },
+      { id:"s9",  progress:8/11,  timeLabel:"১৯ ডিসেম্বর ০৭:৩০ AM", titleBn:"শিরোনাম ৯",
+        longText:"এখানে আপনার বিস্তারিত টেক্সট থাকবে (স্টেপ ৯)।",
+        image:"assets/scene9_master.jpg"
+      },
+      { id:"s10", progress:9/11,  timeLabel:"১৯ ডিসেম্বর ০৯:৩০ AM", titleBn:"শিরোনাম ১০",
+        longText:"এখানে আপনার বিস্তারিত টেক্সট থাকবে (স্টেপ ১০)।",
+        image:"assets/scene10_master.jpg"
+      },
+      { id:"s11", progress:10/11, timeLabel:"১৯ ডিসেম্বর ০১:৪৫ PM", titleBn:"শিরোনাম ১১",
+        longText:"এখানে আপনার বিস্তারিত টেক্সট থাকবে (স্টেপ ১১)।",
+        image:"assets/scene11_master.jpg"
+      },
+      { id:"s12", progress:11/11, timeLabel:"১৯ ডিসেম্বর ০৬:০০ PM", titleBn:"শিরোনাম ১২",
+        longText:"এখানে আপনার বিস্তারিত টেক্সট থাকবে (স্টেপ ১২)।",
+        image:"assets/scene12_master.jpg"
+      }
+    ];
 
-    // ===== DOM BUILD =====
+    // ===== BUILD STEPS =====
     const stepsRoot = document.getElementById("steps");
     SCENES.forEach((s, idx) => {
       const el = document.createElement("div");
@@ -237,6 +277,7 @@
       stepsRoot.appendChild(el);
     });
 
+    // ===== TICKS =====
     const ticksRoot = document.getElementById("ticks");
     const tickEls = [];
     SCENES.forEach((s, idx) => {
@@ -250,14 +291,14 @@
       tickEls.push(t);
     });
 
-    // ===== Timeline UI elements =====
+    // ===== Timeline UI =====
     const timelineWrap = document.getElementById("timelineWrap");
     const track = document.getElementById("track");
     const playhead = document.getElementById("playhead");
     const progressBar = document.getElementById("progress");
     const activeTime = document.getElementById("activeTime");
 
-    // ===== Background crossfade =====
+    // ===== BG crossfade =====
     const bgA = document.getElementById("bgA");
     const bgB = document.getElementById("bgB");
     let front = bgA, back = bgB;
@@ -270,7 +311,6 @@
       const tmp = front; front = back; back = tmp;
     }
 
-    // ===== Helpers =====
     function clamp01(x){ return Math.max(0, Math.min(1, x)); }
 
     function setTimelineUI(idx){
@@ -286,6 +326,7 @@
 
     function renderScene(idx){
       const s = SCENES[idx];
+
       if (idx !== currentIdx) {
         if (currentIdx === -1) {
           front.style.backgroundImage = `url("${s.image}")`;
@@ -295,23 +336,27 @@
         }
         currentIdx = idx;
       }
+
       setTimelineUI(idx);
     }
 
-    // Smooth fade-out based on step progress
+    // ===== Card fade timing (EDIT HERE) =====
     function setCardProgress(stepEl, progress){
       const card = stepEl.querySelector(".card");
       if (!card) return;
-      const hold = 0.80;
-      const fadeSpan = 0.25;
+
+      const hold = 0.78;      // visible until 78% of the step
+      const fadeSpan = 0.28;  // fade between 78%..~100%
+
       let alpha = 1;
       if (progress > hold) {
         const t = Math.min(1, (progress - hold) / fadeSpan);
         alpha = 1 - t;
       }
-      alpha = Math.max(0.05, alpha);
+      alpha = Math.max(0.06, alpha);
+
       card.style.opacity = String(alpha);
-      card.style.transform = `translateY(${(1 - alpha) * -30}px)`;
+      card.style.transform = `translateY(${(1 - alpha) * -14}px)`;
     }
 
     // ===== Scrollama =====
@@ -329,7 +374,7 @@
         if (card) { card.style.opacity = ""; card.style.transform = ""; }
       });
 
-    // ===== Click/Drag to navigate =====
+    // ===== Click/Drag timeline =====
     let isDragging = false;
     let dragRaf = 0;
 
@@ -338,7 +383,6 @@
       return clamp01((clientX - r.left) / r.width);
     }
     function idxFromPct(pct){
-      // snap to nearest scene by progress positions (uniform here)
       return Math.round(pct * (SCENES.length - 1));
     }
 
@@ -351,19 +395,15 @@
     function seekByClientX(clientX){
       const pct = getPctFromClientX(clientX);
       const idx = idxFromPct(pct);
-      // update UI immediately for responsiveness
       setTimelineUI(idx);
-      // scroll to the chosen step
       scrollToStep(idx);
     }
 
-    // Click on track
     track.addEventListener("pointerdown", (e) => {
       track.setPointerCapture(e.pointerId);
       seekByClientX(e.clientX);
     });
 
-    // Drag playhead
     playhead.addEventListener("pointerdown", (e) => {
       isDragging = true;
       playhead.setPointerCapture(e.pointerId);
@@ -377,11 +417,8 @@
       const pct = getPctFromClientX(e.clientX);
       const idx = idxFromPct(pct);
 
-      // Throttle scroll to avoid jank
       if (dragRaf) cancelAnimationFrame(dragRaf);
-      dragRaf = requestAnimationFrame(() => {
-        setTimelineUI(idx);
-      });
+      dragRaf = requestAnimationFrame(() => setTimelineUI(idx));
     });
 
     playhead.addEventListener("pointerup", (e) => {
@@ -391,20 +428,17 @@
       playhead.style.transition = "";
       progressBar.style.transition = "";
       const pct = getPctFromClientX(e.clientX);
-      const idx = idxFromPct(pct);
-      scrollToStep(idx);
+      scrollToStep(idxFromPct(pct));
     });
-
     playhead.addEventListener("pointercancel", () => { isDragging = false; });
 
-    // Keyboard support (optional)
     playhead.addEventListener("keydown", (e) => {
       const active = Number(playhead.getAttribute("aria-valuenow") || "0");
       if (e.key === "ArrowRight") { e.preventDefault(); scrollToStep(Math.min(SCENES.length-1, active+1)); }
       if (e.key === "ArrowLeft")  { e.preventDefault(); scrollToStep(Math.max(0, active-1)); }
     });
 
-    // Initial render
+    // Initial
     renderScene(0);
     document.querySelector(".step")?.classList.add("is-active");
 
