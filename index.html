@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Scrollytelling Timeline (Fullscreen, Interactive)</title>
+  <title>Scrollytelling Timeline (Fullscreen, Interactive, No-crop Main Image)</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&display=swap" rel="stylesheet">
@@ -76,7 +76,7 @@
     }
     .labels{ margin-top: 8px; display:flex; justify-content:space-between; font-size:12px; color:#666; }
 
-    /* ===== Background stage (fills remaining viewport) ===== */
+    /* ===== Background stage (fills remaining viewport, stable on mobile) ===== */
     .bgStage{
       position: sticky;
       top: var(--headerH);
@@ -84,40 +84,39 @@
       z-index: 1;
       overflow: hidden;
       background:#000;
+      isolation: isolate; /* ensures overlay stacking behaves */
     }
     @supports not (height: 100svh){
       .bgStage{ height: calc(100vh - var(--headerH)); }
     }
 
-    /* Crossfade layers */
-    .bgLayer{
-      position:absolute; inset:0;
-      will-change: opacity;
-      transition: opacity 620ms ease;
-      opacity: 0;
-    }
-    .bgLayer.is-visible{ opacity: 1; }
-
-    /* === NEW: two-layer background system ===
-       bgFill = cover + blur (fills screen)
-       bgMain = contain (shows full image, no crop)
+    /* ===== OPTION 1: single image, optimized for PC+Mobile =====
+       - bgFill: same image, cover + blur (fills screen; cropping doesn't matter)
+       - bgMain: same image, contain (NO CROP EVER)
     */
+    .bgFill, .bgMain{
+      position:absolute; inset:0;
+      width:100%; height:100%;
+      opacity: 0;
+      transition: opacity 620ms ease;
+      will-change: opacity;
+      pointer-events:none;
+      user-select:none;
+    }
+    .bgFill.is-visible, .bgMain.is-visible{ opacity: 1; }
+
     .bgFill{
-      position:absolute;
-      inset:-40px;                 /* prevents blur edges */
-      background-size: cover;
-      background-position: center center;
-      background-repeat: no-repeat;
+      object-fit: cover;
       filter: blur(22px);
       transform: scale(1.1);
-      opacity: .9;
+      /* we keep it a bit dim so main image pops */
+      opacity: 0; /* controlled by is-visible */
     }
+
     .bgMain{
-      position:absolute;
-      inset:0;
-      background-size: contain;    /* FULL IMAGE, NO CROP */
-      background-position: center center;
-      background-repeat: no-repeat;
+      object-fit: contain;   /* FULL IMAGE VISIBLE (NO CROP) */
+      background: #000;      /* bars behind image (hidden by blurred fill anyway) */
+      opacity: 0;            /* controlled by is-visible */
     }
 
     .bgOverlay{
@@ -213,16 +212,15 @@
     </div>
   </header>
 
+  <!-- ===== Background stage: 1 image per scene, NO CROP MAIN ===== -->
   <div class="bgStage" aria-hidden="true">
-    <!-- NEW: bg layers now contain bgFill + bgMain -->
-    <div class="bgLayer is-visible" id="bgA">
-      <div class="bgFill"></div>
-      <div class="bgMain"></div>
-    </div>
-    <div class="bgLayer" id="bgB">
-      <div class="bgFill"></div>
-      <div class="bgMain"></div>
-    </div>
+    <!-- Blurred fill (cover) crossfade pair -->
+    <img class="bgFill is-visible" id="fillA" alt="" decoding="async" fetchpriority="high">
+    <img class="bgFill" id="fillB" alt="" decoding="async">
+
+    <!-- Main (contain) crossfade pair -->
+    <img class="bgMain is-visible" id="mainA" alt="" decoding="async" fetchpriority="high">
+    <img class="bgMain" id="mainB" alt="" decoding="async">
 
     <div class="bgOverlay"></div>
   </div>
@@ -239,7 +237,7 @@
 
     // =========================
     // EDIT ONLY THIS ARRAY
-    // images are 1600x2000 (4:5)
+    // Use ONE image per scene (your 1600x2000 is fine)
     // =========================
     const SCENES = [
       { id:"s1",  progress:0/11,  timeLabel:"১৮ ডিসেম্বর ১০:০২ PM", titleBn:"শিরোনাম ১", longText:"ডামি লং টেক্সট (১)", image:"assets/scene1.jpg"  },
@@ -293,28 +291,17 @@
     const progressBar = document.getElementById("progress");
     const activeTime = document.getElementById("activeTime");
 
-    // ===== Background crossfade =====
-    const bgA = document.getElementById("bgA");
-    const bgB = document.getElementById("bgB");
-    let front = bgA, back = bgB;
+    // ===== Background crossfade (NEW implementation, rest unchanged) =====
+    const fillA = document.getElementById("fillA");
+    const fillB = document.getElementById("fillB");
+    const mainA = document.getElementById("mainA");
+    const mainB = document.getElementById("mainB");
+
+    let fillFront = fillA, fillBack = fillB;
+    let mainFront = mainA, mainBack = mainB;
     let currentIdx = -1;
 
     function clamp01(x){ return Math.max(0, Math.min(1, x)); }
-
-    // NEW: apply image to both bgFill + bgMain (no crop + nice fill)
-    function setLayerImage(layerEl, url){
-      const fill = layerEl.querySelector(".bgFill");
-      const main = layerEl.querySelector(".bgMain");
-      if (fill) fill.style.backgroundImage = `url("${url}")`;
-      if (main) main.style.backgroundImage = `url("${url}")`;
-    }
-
-    function crossFadeTo(url){
-      setLayerImage(back, url);
-      back.classList.add("is-visible");
-      front.classList.remove("is-visible");
-      const tmp = front; front = back; back = tmp;
-    }
 
     function setTimelineUI(idx){
       const s = SCENES[idx];
@@ -327,12 +314,33 @@
       playhead.setAttribute("aria-valuenow", String(idx));
     }
 
+    function crossFadeTo(url){
+      // set sources on "back" images
+      fillBack.src = url;
+      mainBack.src = url;
+
+      // fade in back
+      fillBack.classList.add("is-visible");
+      mainBack.classList.add("is-visible");
+
+      // fade out front
+      fillFront.classList.remove("is-visible");
+      mainFront.classList.remove("is-visible");
+
+      // swap references
+      const tmpFill = fillFront; fillFront = fillBack; fillBack = tmpFill;
+      const tmpMain = mainFront; mainFront = mainBack; mainBack = tmpMain;
+    }
+
     function renderScene(idx){
       const s = SCENES[idx];
       if (idx !== currentIdx) {
         if (currentIdx === -1) {
-          setLayerImage(front, s.image);
-          front.classList.add("is-visible");
+          // first paint
+          fillFront.src = s.image;
+          mainFront.src = s.image;
+          fillFront.classList.add("is-visible");
+          mainFront.classList.add("is-visible");
         } else {
           crossFadeTo(s.image);
         }
@@ -341,13 +349,14 @@
       setTimelineUI(idx);
     }
 
-    // ===== Card fade timing =====
+    // ===== Card fade timing (control here) =====
     function setCardProgress(stepEl, progress){
       const card = stepEl.querySelector(".card");
       if (!card) return;
 
-      const hold = 0.78;
-      const fadeSpan = 0.28;
+      // Fade starts later and lasts longer (tweak these)
+      const hold = 0.78;     // fully visible until 78% of step
+      const fadeSpan = 0.28; // fade across next 28% of step
 
       let alpha = 1;
       if (progress > hold) {
@@ -396,8 +405,8 @@
     function seekByClientX(clientX){
       const pct = getPctFromClientX(clientX);
       const idx = idxFromPct(pct);
-      setTimelineUI(idx);
-      scrollToStep(idx);
+      setTimelineUI(idx);   // immediate UI response
+      scrollToStep(idx);    // actual navigation
     }
 
     // Click on track
