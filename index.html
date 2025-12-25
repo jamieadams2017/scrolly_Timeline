@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Scrollytelling Timeline - Smooth Fade (Mobile fixed)</title>
+  <title>Scrollytelling Timeline - Interactive Timeline</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&display=swap" rel="stylesheet">
@@ -21,19 +21,54 @@
     .topline{ display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; }
     .title{ font-weight: 800; }
 
-    .timeline-wrap{ position: relative; height: 72px; margin-top: 10px; }
-    .track{ position:absolute; left:0; right:0; top:28px; height:6px; border-radius:999px; background:#eee; }
-    .progress{ position:absolute; left:0; top:28px; height:6px; border-radius:999px; background:#111; width:0%; transition: width 240ms ease; }
-    .playhead{ position:absolute; top:18px; left:0%; width:18px; height:18px; border-radius:50%; background:#111; transform:translateX(-50%); transition:left 240ms ease; }
+    .timeline-wrap{
+      position: relative;
+      height: 86px;
+      margin-top: 10px;
+      touch-action: pan-y; /* allow horizontal dragging without page hijack */
+      user-select: none;
+    }
+    .track{
+      position:absolute; left:0; right:0; top:28px;
+      height:6px; border-radius:999px; background:#eee;
+      cursor: pointer;
+    }
+    .progress{
+      position:absolute; left:0; top:28px;
+      height:6px; border-radius:999px; background:#111;
+      width:0%;
+      transition: width 120ms linear;
+      pointer-events:none;
+    }
+    .playhead{
+      position:absolute; top:18px; left:0%;
+      width:18px; height:18px; border-radius:50%;
+      background:#111; transform:translateX(-50%);
+      transition: left 120ms linear;
+      cursor: grab;
+      touch-action: none;
+    }
+    .playhead:active{ cursor: grabbing; }
 
-    .ticks{ position:absolute; left:0; right:0; top:20px; height:24px; pointer-events:none; }
-    .tick{ position:absolute; top:0; width:10px; height:24px; transform:translateX(-50%); display:flex; align-items:flex-end; justify-content:center; }
-    .tick::before{ content:""; width:2px; height:14px; border-radius:2px; background:#bbb; }
+    /* Tick marks */
+    .ticks{ position:absolute; left:0; right:0; top:20px; height:24px; }
+    .tick{
+      position:absolute; top:0;
+      width: 18px; height: 24px; /* bigger hit area */
+      transform: translateX(-50%);
+      display:flex; align-items:flex-end; justify-content:center;
+      cursor:pointer;
+    }
+    .tick::before{
+      content:"";
+      width:2px; height:14px; border-radius:2px; background:#bbb;
+    }
     .tick.is-active::before{ background:#111; height:18px; }
 
     .activeTimeCenter{
-      position:absolute; left:50%; top:46px; transform:translateX(-50%);
+      position:absolute; left:50%; top:52px; transform:translateX(-50%);
       font-size: 13px; color:#444; font-weight:600; white-space:nowrap;
+      pointer-events:none;
     }
 
     .labels{ margin-top: 8px; display:flex; justify-content:space-between; font-size:12px; color:#666; }
@@ -41,7 +76,7 @@
     /* ===== Cross-fade background stage ===== */
     .bgStage{
       position: sticky;
-      top: 108px; /* below header */
+      top: 108px;
       height: calc(100dvh - 126px);
       z-index: 1;
       overflow: hidden;
@@ -83,7 +118,7 @@
     }
 
     .step{
-      min-height: 110vh; /* give more scroll distance */
+      min-height: 110vh;
       display:flex;
       align-items:flex-end;
       position: relative;
@@ -121,10 +156,9 @@
     .card h3{ margin:0 0 8px 0; font-size: 20px; font-weight: 800; color:#111; }
     .card p{ margin:0; line-height: 1.7; font-size: 14px; color:#222; }
 
-    /* Mobile tuning */
     @media (max-width: 900px){
       .bgStage{ top: 92px; }
-      .step{ min-height: 135vh; } /* IMPORTANT: more scroll room on mobile */
+      .step{ min-height: 135vh; }
       .card{ width: 320px; bottom: 16px; }
     }
     @media (max-width: 420px){
@@ -139,10 +173,10 @@
       <div class="title">ঢাকা: সংবাদপত্র অফিসে হামলা — স্ক্রল টাইমলাইন</div>
     </div>
 
-    <div class="timeline-wrap">
-      <div class="track"></div>
+    <div class="timeline-wrap" id="timelineWrap">
+      <div class="track" id="track" aria-label="Timeline track"></div>
       <div class="progress" id="progress"></div>
-      <div class="playhead" id="playhead"></div>
+      <div class="playhead" id="playhead" role="slider" aria-label="Timeline playhead" aria-valuemin="0" aria-valuemax="11" aria-valuenow="0" tabindex="0"></div>
       <div class="ticks" id="ticks"></div>
       <div class="activeTimeCenter" id="activeTime">সময়: —</div>
     </div>
@@ -168,19 +202,20 @@
     if ("scrollRestoration" in history) history.scrollRestoration = "manual";
     window.addEventListener("load", () => window.scrollTo(0, 0));
 
+    // ===== DATA =====
     const SCENES = Array.from({length: 12}, (_, i) => {
       const n = i + 1;
       return {
         id: "s" + n,
         progress: i / 11,
-        timeLabel: (n===11) ? "১৯ ডিসেম্বর ০১:৪৫ PM" : "ডামি সময়",
-        titleBn: (n===11) ? "বিতর্ক/পাল্টাপাল্টি" : "ডামি শিরোনাম " + n,
-        longText: "ডামি লং টেক্সট: এই অংশে বিস্তারিত বর্ণনা থাকবে। আপনি চাইলে এখানে ৫০/১০০ শব্দও দিতে পারবেন।",
+        timeLabel: "সময় " + n,
+        titleBn: "শিরোনাম " + n,
+        longText: "ডামি লং টেক্সট: এখানে আপনার বিস্তারিত টেক্সট থাকবে। (স্টেপ " + n + ")",
         image: "assets/scene" + n + ".jpg"
       };
     });
 
-    // Build steps with cards
+    // ===== DOM BUILD =====
     const stepsRoot = document.getElementById("steps");
     SCENES.forEach((s, idx) => {
       const el = document.createElement("div");
@@ -196,22 +231,27 @@
       stepsRoot.appendChild(el);
     });
 
-    // Ticks
     const ticksRoot = document.getElementById("ticks");
     const tickEls = [];
-    SCENES.forEach((s) => {
+    SCENES.forEach((s, idx) => {
       const t = document.createElement("div");
       t.className = "tick";
       t.style.left = (Math.max(0, Math.min(1, s.progress)) * 100) + "%";
+      t.dataset.index = idx;
+      t.title = s.timeLabel;
+      t.addEventListener("click", () => scrollToStep(idx));
       ticksRoot.appendChild(t);
       tickEls.push(t);
     });
 
+    // ===== Timeline UI elements =====
+    const timelineWrap = document.getElementById("timelineWrap");
+    const track = document.getElementById("track");
     const playhead = document.getElementById("playhead");
     const progressBar = document.getElementById("progress");
     const activeTime = document.getElementById("activeTime");
 
-    // Crossfade backgrounds
+    // ===== Background crossfade =====
     const bgA = document.getElementById("bgA");
     const bgB = document.getElementById("bgB");
     let front = bgA, back = bgB;
@@ -224,10 +264,22 @@
       const tmp = front; front = back; back = tmp;
     }
 
+    // ===== Helpers =====
+    function clamp01(x){ return Math.max(0, Math.min(1, x)); }
+
+    function setTimelineUI(idx){
+      const s = SCENES[idx];
+      const pct = clamp01(s.progress) * 100;
+      playhead.style.left = pct + "%";
+      progressBar.style.width = pct + "%";
+      tickEls.forEach(x => x.classList.remove("is-active"));
+      tickEls[idx]?.classList.add("is-active");
+      activeTime.textContent = "সময়: " + (s.timeLabel || "—");
+      playhead.setAttribute("aria-valuenow", String(idx));
+    }
+
     function renderScene(idx){
       const s = SCENES[idx];
-      const pct = Math.max(0, Math.min(1, s.progress)) * 100;
-
       if (idx !== currentIdx) {
         if (currentIdx === -1) {
           front.style.backgroundImage = `url("${s.image}")`;
@@ -237,36 +289,26 @@
         }
         currentIdx = idx;
       }
-
-      playhead.style.left = pct + "%";
-      progressBar.style.width = pct + "%";
-      tickEls.forEach(x => x.classList.remove("is-active"));
-      tickEls[idx]?.classList.add("is-active");
-      activeTime.textContent = "সময়: " + (s.timeLabel || "—");
+      setTimelineUI(idx);
     }
 
-    // Smooth fade-out based on real step progress (mobile-safe)
+    // Smooth fade-out based on step progress
     function setCardProgress(stepEl, progress){
       const card = stepEl.querySelector(".card");
       if (!card) return;
-
-      // Keep fully visible until ~65% of the step
       const hold = 0.65;
-      const fadeSpan = 0.30; // fade from 0.65 -> 0.95
+      const fadeSpan = 0.30;
       let alpha = 1;
-
       if (progress > hold) {
         const t = Math.min(1, (progress - hold) / fadeSpan);
-        alpha = 1 - t; // down to 0
+        alpha = 1 - t;
       }
-
-      // Ensure it never instantly disappears
       alpha = Math.max(0.05, alpha);
-
       card.style.opacity = String(alpha);
       card.style.transform = `translateY(${(1 - alpha) * -12}px)`;
     }
 
+    // ===== Scrollama =====
     const scroller = scrollama();
     scroller.setup({ step: ".step", offset: 0.6, progress: true })
       .onStepEnter(({ element, index }) => {
@@ -275,20 +317,88 @@
         renderScene(index);
         setCardProgress(element, 0);
       })
-      .onStepProgress(({ element, progress }) => {
-        // progress: 0..1 within the step
-        setCardProgress(element, progress);
-      })
+      .onStepProgress(({ element, progress }) => setCardProgress(element, progress))
       .onStepExit(({ element }) => {
-        // reset styles so next time it enters it's clean
         const card = element.querySelector(".card");
-        if (card) {
-          card.style.opacity = "";
-          card.style.transform = "";
-        }
+        if (card) { card.style.opacity = ""; card.style.transform = ""; }
       });
 
-    // initial
+    // ===== Click/Drag to navigate =====
+    let isDragging = false;
+    let dragRaf = 0;
+
+    function getPctFromClientX(clientX){
+      const r = timelineWrap.getBoundingClientRect();
+      return clamp01((clientX - r.left) / r.width);
+    }
+    function idxFromPct(pct){
+      // snap to nearest scene by progress positions (uniform here)
+      return Math.round(pct * (SCENES.length - 1));
+    }
+
+    function scrollToStep(idx){
+      const stepEl = document.querySelector(`.step[data-index="${idx}"]`);
+      if (!stepEl) return;
+      stepEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function seekByClientX(clientX){
+      const pct = getPctFromClientX(clientX);
+      const idx = idxFromPct(pct);
+      // update UI immediately for responsiveness
+      setTimelineUI(idx);
+      // scroll to the chosen step
+      scrollToStep(idx);
+    }
+
+    // Click on track
+    track.addEventListener("pointerdown", (e) => {
+      track.setPointerCapture(e.pointerId);
+      seekByClientX(e.clientX);
+    });
+
+    // Drag playhead
+    playhead.addEventListener("pointerdown", (e) => {
+      isDragging = true;
+      playhead.setPointerCapture(e.pointerId);
+      playhead.style.transition = "none";
+      progressBar.style.transition = "none";
+      e.preventDefault();
+    });
+
+    playhead.addEventListener("pointermove", (e) => {
+      if (!isDragging) return;
+      const pct = getPctFromClientX(e.clientX);
+      const idx = idxFromPct(pct);
+
+      // Throttle scroll to avoid jank
+      if (dragRaf) cancelAnimationFrame(dragRaf);
+      dragRaf = requestAnimationFrame(() => {
+        setTimelineUI(idx);
+      });
+    });
+
+    playhead.addEventListener("pointerup", (e) => {
+      if (!isDragging) return;
+      isDragging = false;
+      playhead.releasePointerCapture(e.pointerId);
+      playhead.style.transition = "";
+      progressBar.style.transition = "";
+      const pct = getPctFromClientX(e.clientX);
+      const idx = idxFromPct(pct);
+      scrollToStep(idx);
+    });
+
+    playhead.addEventListener("pointercancel", () => { isDragging = false; });
+
+    // Keyboard support (optional)
+    playhead.addEventListener("keydown", (e) => {
+      const active = Number(playhead.getAttribute("aria-valuenow") || "0");
+      if (e.key === "ArrowRight") { e.preventDefault(); scrollToStep(Math.min(SCENES.length-1, active+1)); }
+      if (e.key === "ArrowLeft")  { e.preventDefault(); scrollToStep(Math.max(0, active-1)); }
+    });
+
+    // Initial render
     renderScene(0);
     document.querySelector(".step")?.classList.add("is-active");
 
