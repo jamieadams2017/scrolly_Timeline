@@ -11,33 +11,83 @@
   <style>
     body { margin:0; font-family:"Noto Sans Bengali", system-ui, sans-serif; background:#fff; }
 
-    .timeline-sticky {
+    /* Sticky full-width timeline header */
+    .timeline-sticky{
       position: sticky; top: 0; z-index: 50;
-      background: #fff;
+      background:#fff;
       border-bottom: 1px solid #eee;
       padding: 14px 16px 10px;
     }
-    .topline { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; }
-    .title { font-weight: 800; }
+    .topline{ display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    .title{ font-weight: 800; }
 
-    .timeline-wrap { position: relative; height: 72px; margin-top: 10px; }
-    .track { position:absolute; left:0; right:0; top:28px; height: 6px; border-radius: 999px; background:#eee; }
-    .progress { position:absolute; left:0; top:28px; height: 6px; border-radius: 999px; background:#111; width: 0%; transition: width 240ms ease; }
-    .playhead { position:absolute; top:18px; left:0%; width: 18px; height: 18px; border-radius: 50%; background:#111; transform: translateX(-50%); transition: left 240ms ease; }
-
-    .ticks { position:absolute; left:0; right:0; top: 20px; height: 24px; pointer-events:none; }
-    .tick { position:absolute; top: 0; width: 10px; height: 24px; transform: translateX(-50%); display:flex; align-items:flex-end; justify-content:center; }
-    .tick::before{ content:""; width: 2px; height: 14px; border-radius: 2px; background:#bbb; }
-    .tick.is-active::before{ background:#111; height: 18px; }
-
-    .activeTimeCenter {
-      position:absolute; left:50%; top: 46px; transform: translateX(-50%);
-      font-size: 13px; color:#444; font-weight: 600; white-space: nowrap;
+    .timeline-wrap{ position: relative; height: 72px; margin-top: 10px; }
+    .track{
+      position:absolute; left:0; right:0; top:28px;
+      height: 6px; border-radius: 999px; background:#eee;
+    }
+    .progress{
+      position:absolute; left:0; top:28px;
+      height: 6px; border-radius: 999px; background:#111;
+      width: 0%;
+      transition: width 240ms ease;
+    }
+    .playhead{
+      position:absolute; top:18px; left:0%;
+      width: 18px; height: 18px; border-radius: 50%;
+      background:#111; transform: translateX(-50%);
+      transition: left 240ms ease;
     }
 
-    .labels { margin-top: 8px; display:flex; justify-content:space-between; font-size: 12px; color:#666; }
+    /* Tick marks */
+    .ticks{
+      position:absolute; left:0; right:0;
+      top: 20px;
+      height: 24px;
+      pointer-events:none;
+    }
+    .tick{
+      position:absolute;
+      top: 0;
+      width: 10px;
+      height: 24px;
+      transform: translateX(-50%);
+      display:flex;
+      align-items:flex-end;
+      justify-content:center;
+    }
+    .tick::before{
+      content:"";
+      width: 2px;
+      height: 14px;
+      border-radius: 2px;
+      background:#bbb;
+    }
+    .tick.is-active::before{
+      background:#111;
+      height: 18px;
+    }
 
-    .container {
+    /* Active time centered under the bar */
+    .activeTimeCenter{
+      position:absolute;
+      left:50%;
+      top: 46px;
+      transform: translateX(-50%);
+      font-size: 13px;
+      color:#444;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .labels{
+      margin-top: 8px;
+      display:flex; justify-content:space-between;
+      font-size: 12px; color:#666;
+    }
+
+    /* Main scrolly area */
+    .container{
       max-width: 1200px;
       margin: 0 auto;
       padding: 18px 16px 60px;
@@ -46,7 +96,8 @@
       gap: 18px;
     }
 
-    .step {
+    /* Steps (LEFT) — long text */
+    .step{
       background:#fff;
       border: 1px solid #eee;
       border-radius: 16px;
@@ -57,12 +108,13 @@
       flex-direction:column;
       justify-content:center;
     }
-    .step.is-active { border-color:#111; box-shadow: 0 10px 24px rgba(0,0,0,.06); }
-    .step .when { color:#666; font-size: 12px; margin-bottom: 10px; }
-    .step h3 { margin:0 0 10px 0; font-size: 20px; }
-    .step p { margin:0; line-height: 1.75; color:#222; }
+    .step.is-active{ border-color:#111; box-shadow: 0 10px 24px rgba(0,0,0,.06); }
+    .step .when{ color:#666; font-size: 12px; margin-bottom: 10px; }
+    .step h3{ margin:0 0 10px 0; font-size: 20px; }
+    .step p{ margin:0; line-height: 1.75; color:#222; }
 
-    .scene {
+    /* Sticky scene panel (RIGHT) — image + short + (mobile: also time/title/long) */
+    .scene{
       position: sticky;
       top: 108px;
       border: 1px solid #eee;
@@ -71,49 +123,60 @@
       background:#fafafa;
       height: calc(100dvh - 126px);
     }
-    @supports not (height: 100dvh) {
-      .scene { height: calc(100vh - 126px); }
+    @supports not (height: 100dvh){
+      .scene{ height: calc(100vh - 126px); }
     }
 
-    .scene img { width:100%; height: 62%; object-fit: cover; display:block; background:#ddd; }
-    .scene .content { height:38%; overflow:auto; background:#fff; padding: 14px; }
+    .scene img{
+      width:100%;
+      height: 62%;
+      object-fit: cover;
+      display:block;
+      background:#ddd;
+    }
+    .scene .content{
+      height:38%;
+      overflow:auto;
+      background:#fff;
+      padding: 14px;
+    }
 
-    /* Desktop: keep right-side minimal (only shortText). */
-    .scene h2, .scene .meta { display:none; }
-    .scene .body { color:#222; line-height: 1.65; font-size: 14px; }
+    /* hide these under image (you requested earlier) */
+    .scene h2, .scene .meta{ display:none; }
 
-    /* Mobile-only details block */
-    .mobileDetails {
+    .scene .body{ color:#222; line-height: 1.65; font-size: 14px; }
+
+    /* Mobile-only details block inside scene (so mobile sees everything together) */
+    .mobileDetails{
       display:none;
       margin-top: 12px;
       padding-top: 12px;
       border-top: 1px solid #eee;
     }
-    .mobileDetails .mWhen { font-size: 12px; color:#666; margin-bottom: 6px; }
-    .mobileDetails .mTitle { font-size: 16px; font-weight: 800; margin: 0 0 8px 0; }
-    .mobileDetails .mLong { font-size: 14px; line-height: 1.75; color:#222; }
+    .mobileDetails .mWhen{ font-size: 12px; color:#666; margin-bottom: 6px; }
+    .mobileDetails .mTitle{ font-size: 16px; font-weight: 800; margin: 0 0 8px 0; }
+    .mobileDetails .mLong{ font-size: 14px; line-height: 1.75; color:#222; }
 
-    /* ✅ MOBILE: scene stays sticky + show mobileDetails */
+    /* ✅ MOBILE: keep scene sticky so image changes while scrolling steps */
     @media (max-width: 900px){
-      .container { grid-template-columns: 1fr; }
+      .container{ grid-template-columns: 1fr; }
 
       .scene{
         position: sticky;
-        top: 92px;
-        height: 62dvh;
+        top: 92px;        /* below header */
+        height: 62dvh;     /* compact but readable */
         margin-bottom: 14px;
       }
-      @supports not (height: 100dvh) {
-        .scene { height: 62vh; }
+      @supports not (height: 100dvh){
+        .scene{ height: 62vh; }
       }
 
-      .scene img { height: 52%; }
-      .scene .content { height: 48%; }
+      .scene img{ height: 52%; }
+      .scene .content{ height: 48%; }
 
-      .mobileDetails { display:block; }
+      .mobileDetails{ display:block; }
 
-      /* steps still exist below (optional to keep) */
-      .step { min-height: 70vh; }
+      .step{ min-height: 70vh; }
     }
   </style>
 </head>
@@ -128,7 +191,9 @@
       <div class="track"></div>
       <div class="progress" id="progress"></div>
       <div class="playhead" id="playhead"></div>
+
       <div class="ticks" id="ticks"></div>
+
       <div class="activeTimeCenter" id="activeTime">সময়: —</div>
     </div>
 
@@ -153,76 +218,93 @@
           <h3 class="mTitle" id="mTitle"></h3>
           <div class="mLong" id="mLong"></div>
         </div>
+
+        <!-- kept in DOM but hidden -->
+        <h2 id="sceneTitle"></h2>
+        <div class="meta" id="sceneMeta"></div>
       </div>
     </aside>
   </main>
 
   <script src="https://unpkg.com/scrollama"></script>
   <script>
+    // -----------------------------
+    // Mobile bug fix: don't jump to last step on load
+    // -----------------------------
+    if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+    window.addEventListener("load", () => { window.scrollTo(0, 0); });
+
+    let hasUserScrolled = false;
+    window.addEventListener("scroll", () => { hasUserScrolled = true; }, { once: true });
+
+    // =========================================================
+    // longText = LEFT step (long)
+    // shortText = RIGHT panel under image (short)
+    // =========================================================
     const SCENES = [
       { id:"s1",  progress:0/11,  timeLabel:"১৮ ডিসেম্বর ১০:০২ PM", titleBn:"প্রথম আহ্বান দেখা যায়",
-        longText:"ডামি লং টেক্সট: এই পর্যায়ে বিভিন্ন পোস্টে উসকানিমূলক ভাষা ধরা পড়তে শুরু করে... (আরও বিস্তারিত এখানে থাকবে)।",
+        longText:"ডামি লং টেক্সট: এই পর্যায়ে বিভিন্ন পোস্টে উসকানিমূলক ভাষা ধরা পড়তে শুরু করে। কিছু অ্যাকাউন্ট সরাসরি আহ্বানের মতো বাক্য ব্যবহার করে, আবার কেউ ইঙ্গিতপূর্ণ ভাষায় সমর্থন জানায়। একই ধরনের শব্দ/ফ্রেজ বারবার দেখা যায়, যা পরের ধাপের দ্রুত ছড়ানোর ভিত্তি তৈরি করে।",
         shortText:"সংক্ষিপ্ত: উসকানিমূলক ভাষা প্রথম চোখে পড়ে।",
         image:"assets/scene1.jpg"
       },
       { id:"s2",  progress:1/11,  timeLabel:"১৮ ডিসেম্বর ১০:২০ PM", titleBn:"বার্তা ছড়াতে শুরু",
-        longText:"ডামি লং টেক্সট: একাধিক গ্রুপ ও পেজে একই বক্তব্য কপি-পেস্ট হয়ে ছড়াতে থাকে...",
+        longText:"ডামি লং টেক্সট: একাধিক গ্রুপ ও পেজে একই বক্তব্য কপি-পেস্ট হয়ে ছড়াতে থাকে। কিছু পোস্টে লিংক/স্ক্রিনশট যুক্ত হয়, এবং কমেন্টে অন্যদের ট্যাগ করে ছড়িয়ে দেওয়ার চেষ্টা দেখা যায়।",
         shortText:"সংক্ষিপ্ত: কপি-পেস্ট করে দ্রুত শেয়ার বাড়ে।",
         image:"assets/scene2.jpg"
       },
       { id:"s3",  progress:2/11,  timeLabel:"১৮ ডিসেম্বর ১০:৪০ PM", titleBn:"বৈধতা দেওয়ার ভাষা",
-        longText:"ডামি লং টেক্সট: ‘প্রাপ্য ছিল’, ‘ঠিক হয়েছে’— এমন যুক্তি দিয়ে ঘটনাকে বৈধতা দেওয়ার প্রবণতা জোরালো হয়...",
+        longText:"ডামি লং টেক্সট: ‘প্রাপ্য ছিল’, ‘ঠিক হয়েছে’— এমন যুক্তি দিয়ে ঘটনাকে বৈধতা দেওয়ার প্রবণতা জোরালো হয়। কিছু পোস্টে নৈতিক/রাজনৈতিক ব্যাখ্যা যোগ করে সমর্থন বাড়ানোর চেষ্টা থাকে, যা পরের ধাপে আরও আক্রমণাত্মক বক্তব্যকে উৎসাহিত করে।",
         shortText:"সংক্ষিপ্ত: ‘প্রাপ্য’ বলে বৈধতা দেওয়া শুরু।",
         image:"assets/scene3.jpg"
       },
       { id:"s4",  progress:3/11,  timeLabel:"১৮ ডিসেম্বর ১১:০৫ PM", titleBn:"লক্ষ্য নির্ধারণ/ট্যাগিং",
-        longText:"ডামি লং টেক্সট: নির্দিষ্ট ব্যক্তি/প্রতিষ্ঠানের নাম উল্লেখ করে পোস্ট বাড়ে...",
+        longText:"ডামি লং টেক্সট: নির্দিষ্ট ব্যক্তি/প্রতিষ্ঠানের নাম উল্লেখ করে পোস্ট বাড়ে। কিছু ক্ষেত্রে লোকেশন বা অফিস/এলাকার ইঙ্গিতও দেখা যায়। কমেন্টে ট্যাগিংয়ের মাধ্যমে এনগেজমেন্ট বৃদ্ধি পায়।",
         shortText:"সংক্ষিপ্ত: নাম-উল্লেখ ও ট্যাগিং বাড়ে।",
         image:"assets/scene4.jpg"
       },
       { id:"s5",  progress:4/11,  timeLabel:"১৮ ডিসেম্বর ১১:৩০ PM", titleBn:"কলে টু অ্যাকশন",
-        longText:"ডামি লং টেক্সট: ‘চল’, ‘এখনই’, ‘যেতে হবে’— এমন ভাষা দেখা যায়...",
+        longText:"ডামি লং টেক্সট: ‘চল’, ‘এখনই’, ‘যেতে হবে’— এমন ভাষা দেখা যায়। কিছু পোস্টে দলবদ্ধ হওয়ার মতো ইঙ্গিত থাকে, অন্যগুলোতে উত্তেজনা বাড়ানো শব্দ/ইমোজি/স্লোগান যোগ হয়।",
         shortText:"সংক্ষিপ্ত: সরাসরি কর্মসূচির ইঙ্গিত বাড়ে।",
         image:"assets/scene5.jpg"
       },
       { id:"s6",  progress:5/11,  timeLabel:"১৮ ডিসেম্বর ১১:৪৫ PM", titleBn:"ছবি/ভিডিও ছড়ায়",
-        longText:"ডামি লং টেক্সট: ভিডিও/ছবি শেয়ার বাড়তে থাকে...",
+        longText:"ডামি লং টেক্সট: ভিডিও/ছবি শেয়ার বাড়তে থাকে। বিভিন্ন অ্যাঙ্গেল থেকে ধারণকৃত ক্লিপ যুক্ত হয় এবং ক্যাপশন আরও তীব্র হয়। এখানে ভুল ব্যাখ্যা বা পুরনো ছবি নতুন বলে চালানোর ঝুঁকিও থাকে।",
         shortText:"সংক্ষিপ্ত: ভিজ্যুয়াল কনটেন্ট শেয়ার বেড়ে যায়।",
         image:"assets/scene6.jpg"
       },
       { id:"s7",  progress:6/11,  timeLabel:"১৯ ডিসেম্বর ১২:৩০ AM", titleBn:"গুজব/দাবি যোগ",
-        longText:"ডামি লং টেক্সট: যাচাইহীন দাবি, অতিরঞ্জিত সংখ্যা/ঘটনা যুক্ত হতে থাকে...",
+        longText:"ডামি লং টেক্সট: যাচাইহীন দাবি, অতিরঞ্জিত সংখ্যা/ঘটনা, এবং বিভিন্ন ‘শোনা গেছে’ টাইপের বাক্য দেখা যায়। কিছু পোস্টে সূত্র ছাড়া নিশ্চিত ভঙ্গিতে লেখা হয়, যা বিভ্রান্তি তৈরি করে।",
         shortText:"সংক্ষিপ্ত: যাচাইহীন দাবি যোগ হতে থাকে।",
         image:"assets/scene7.jpg"
       },
       { id:"s8",  progress:7/11,  timeLabel:"১৯ ডিসেম্বর ০২:১৫ AM", titleBn:"মিম/ব্যঙ্গ",
-        longText:"ডামি লং টেক্সট: মিম, ব্যঙ্গচিত্র এবং ক্যাপশন-ভিত্তিক কনটেন্ট দ্রুত ছড়ায়...",
+        longText:"ডামি লং টেক্সট: ঘটনার প্রসঙ্গে ব্যঙ্গচিত্র, মিম, এবং ক্যাপশন-ভিত্তিক কনটেন্ট তৈরি হয়। এগুলো দ্রুত ভাইরাল হয় এবং আবেগ/ধারণা গঠনে ভূমিকা রাখে।",
         shortText:"সংক্ষিপ্ত: মিম কনটেন্ট ভাইরাল হতে থাকে।",
         image:"assets/scene8.jpg"
       },
       { id:"s9",  progress:8/11,  timeLabel:"১৯ ডিসেম্বর ০৭:৩০ AM", titleBn:"প্রতিরোধী কণ্ঠ",
-        longText:"ডামি লং টেক্সট: কিছু পোস্ট হামলার বিরোধিতা করে শান্ত থাকার আহ্বান জানায়...",
+        longText:"ডামি লং টেক্সট: কিছু পোস্ট হামলার বিরোধিতা করে শান্ত থাকার আহ্বান জানায়। কেউ কেউ রিপোর্ট/ফ্যাক্ট-চেকের কথা বলে, এবং বিভ্রান্তি ছড়ানো পোস্টের বিপক্ষে অবস্থান নেয়।",
         shortText:"সংক্ষিপ্ত: বিরোধিতা/শান্তির আহ্বান দেখা যায়।",
         image:"assets/scene9.jpg"
       },
       { id:"s10", progress:9/11,  timeLabel:"১৯ ডিসেম্বর ০৯:৩০ AM", titleBn:"উদযাপন ও পুনঃশেয়ার",
-        longText:"ডামি লং টেক্সট: কিছু পোস্ট উদযাপনধর্মী ভাষা ব্যবহার করে, রি-শেয়ার বাড়ে...",
+        longText:"ডামি লং টেক্সট: কিছু পোস্ট উদযাপনধর্মী ভাষা ব্যবহার করে। অন্যরা প্রশংসা/রিপোস্ট করে এনগেজমেন্ট বাড়ায়। একই সঙ্গে প্রতিবাদী পোস্টও সমান্তরালে চলতে থাকে।",
         shortText:"সংক্ষিপ্ত: উদযাপন ও রি-শেয়ার বাড়ে।",
         image:"assets/scene10.jpg"
       },
       { id:"s11", progress:10/11, timeLabel:"১৯ ডিসেম্বর ০১:৪৫ PM", titleBn:"বিতর্ক/পাল্টাপাল্টি",
-        longText:"ডামি লং টেক্সট: কমেন্টে তর্ক, পাল্টা অভিযোগ এবং স্ক্রিনশট-যুদ্ধ দেখা যায়...",
+        longText:"ডামি লং টেক্সট: কমেন্টে তর্ক, পাল্টা অভিযোগ, স্ক্রিনশট-যুদ্ধ দেখা যায়। কিছু ক্ষেত্রে হুমকি/কটূক্তিও বাড়তে পারে। এখানে মডারেশন/রিপোর্টিং কার্যকর হলে টক্সিসিটি কমতে পারে।",
         shortText:"সংক্ষিপ্ত: পাল্টাপাল্টি বিতর্ক তীব্র হয়।",
         image:"assets/scene11.jpg"
       },
       { id:"s12", progress:11/11, timeLabel:"১৯ ডিসেম্বর ০৬:০০ PM", titleBn:"শেষ পর্যায়",
-        longText:"ডামি লং টেক্সট: সমর্থন/বিরোধিতা/উদযাপন— সবধরনের প্রতিক্রিয়া স্থিতিশীল হয়...",
+        longText:"ডামি লং টেক্সট: সমর্থন/বিরোধিতা/উদযাপন— একাধিক ধারার পোস্ট পাশাপাশি স্থিতি পায়। কিছু পোস্ট সারসংক্ষেপ দেয়, কেউ আবার পুরনো পোস্ট ফিরিয়ে এনে নতুন করে বিতর্ক তৈরি করে।",
         shortText:"সংক্ষিপ্ত: প্রতিক্রিয়ার ধারা স্থিতিশীল হয়।",
         image:"assets/scene12.jpg"
       }
     ];
 
-    // ticks
+    // Build tick marks
     const ticksRoot = document.getElementById("ticks");
     const tickEls = [];
     SCENES.forEach((s) => {
@@ -233,7 +315,7 @@
       tickEls.push(t);
     });
 
-    // steps
+    // Build steps
     const stepsRoot = document.getElementById("steps");
     SCENES.forEach((s, idx) => {
       const el = document.createElement("div");
@@ -248,28 +330,31 @@
     });
 
     const playhead = document.getElementById("playhead");
-    const progress = document.getElementById("progress");
+    const progressBar = document.getElementById("progress");
     const activeTime = document.getElementById("activeTime");
 
-    // mobile details targets
+    // Mobile details targets
     const mWhen = document.getElementById("mWhen");
     const mTitle = document.getElementById("mTitle");
     const mLong = document.getElementById("mLong");
 
-    function renderScene(idx) {
+    function renderScene(idx){
       const s = SCENES[idx];
       const pct = Math.max(0, Math.min(1, s.progress)) * 100;
 
       playhead.style.left = pct + "%";
-      progress.style.width = pct + "%";
+      progressBar.style.width = pct + "%";
 
       tickEls.forEach(x => x.classList.remove("is-active"));
       tickEls[idx]?.classList.add("is-active");
 
-      document.getElementById("sceneImg").src = s.image || "";
+      const img = document.getElementById("sceneImg");
+      img.onerror = () => console.warn("Image failed:", img.src);
+      img.src = s.image || "";
+
       document.getElementById("sceneBody").textContent = s.shortText || "";
 
-      // mobile: show time/title/long inside scene too
+      // Mobile: show time/title/long inside scene too
       mWhen.textContent = s.timeLabel || "";
       mTitle.textContent = s.titleBn || "";
       mLong.textContent = s.longText || "";
@@ -279,20 +364,26 @@
 
     const scroller = scrollama();
     scroller.setup({ step: ".step", offset: 0.6 })
-      .onStepEnter(({ element }) => {
+      .onStepEnter(({ element, index }) => {
+        // Prevent mobile auto-trigger from jumping to last step before scroll
+        if (!hasUserScrolled && index !== 0) return;
+
         document.querySelectorAll(".step").forEach(x => x.classList.remove("is-active"));
         element.classList.add("is-active");
-        renderScene(Number(element.dataset.index));
+        renderScene(index);
       });
 
     function onResize(){ scroller.resize(); }
     window.addEventListener("resize", onResize);
     window.addEventListener("orientationchange", onResize);
 
+    // Initial render + stabilize measurements for iOS Safari
     renderScene(0);
     document.querySelector(".step")?.classList.add("is-active");
+    setTimeout(() => scroller.resize(), 50);
+    setTimeout(() => scroller.resize(), 300);
 
-    function escapeHtml(str) {
+    function escapeHtml(str){
       return String(str ?? "").replace(/[&<>"']/g, s => ({
         "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
       }[s]));
