@@ -24,7 +24,7 @@
     .topline{ display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; }
     .title{ font-weight: 800; }
 
-    /* ===== ADDED: Centered big title + subtitle ===== */
+    /* ===== ADDED: Big centered title + subtitle line ===== */
     .topline-center{
       justify-content: center;
       text-align: center;
@@ -51,7 +51,7 @@
       .title{ font-size: 20px; }
       .subtitle{ font-size: 12px; }
     }
-    /* =============================================== */
+    /* ================================================ */
 
     .timeline-wrap{
       position: relative;
@@ -136,29 +136,21 @@
 
     .bgFill{
       object-fit: cover;
-      filter: blur(22px);
+      filter: blur(26px) saturate(1.2); /* IMPROVED blur */
       transform: scale(1.1);
-      /* we keep it a bit dim so main image pops */
-      opacity: 0; /* controlled by is-visible */
     }
+    /* keep crossfade working, but slightly dim when visible */
+    .bgFill.is-visible{ opacity: .95; }  /* IMPROVED blur visibility */
 
     .bgMain{
       object-fit: contain;   /* FULL IMAGE VISIBLE (NO CROP) */
-      background: #000;      /* bars behind image (hidden by blurred fill anyway) */
+      background: transparent; /* CHANGED: let blur show through */
       opacity: 0;            /* controlled by is-visible */
-    }
-
-    /* ===== Added polish (as requested earlier) ===== */
-    .bgMain{
-      object-fit: contain;
-      padding: 4vh 6vw;   /* makes square image feel bigger on wide screens */
+      padding: 4vh 6vw;      /* (your earlier polish) */
     }
     @media (max-width:900px){
-      .bgMain{
-        padding: 0;
-      }
+      .bgMain{ padding: 0; }
     }
-    /* ============================================= */
 
     .bgOverlay{
       position:absolute; inset:0;
@@ -233,7 +225,7 @@
 
 <body>
   <header class="timeline-sticky">
-    <!-- CHANGED: centered block + subtitle line (everything else intact) -->
+    <!-- CHANGED: centered title + subtitle (rest of header intact) -->
     <div class="topline topline-center">
       <div class="headerText">
         <div class="title">ঢাকা: সংবাদপত্র অফিসে হামলা — স্ক্রল টাইমলাইন</div>
