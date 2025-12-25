@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Scrollytelling Timeline (1600×2000, Fullscreen, Interactive)</title>
+  <title>Scrollytelling Timeline (Fullscreen, Interactive)</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&display=swap" rel="stylesheet">
@@ -58,7 +58,7 @@
     .ticks{ position:absolute; left:0; right:0; top:20px; height:24px; }
     .tick{
       position:absolute; top:0;
-      width: 18px; height: 24px;               /* bigger hit area */
+      width: 18px; height: 24px;
       transform: translateX(-50%);
       display:flex; align-items:flex-end; justify-content:center;
       cursor:pointer;
@@ -76,7 +76,7 @@
     }
     .labels{ margin-top: 8px; display:flex; justify-content:space-between; font-size:12px; color:#666; }
 
-    /* ===== Background stage (fills remaining viewport, stable on mobile) ===== */
+    /* ===== Background stage (fills remaining viewport) ===== */
     .bgStage{
       position: sticky;
       top: var(--headerH);
@@ -89,19 +89,36 @@
       .bgStage{ height: calc(100vh - var(--headerH)); }
     }
 
-    /* Crossfade layers (FULLSCREEN) */
+    /* Crossfade layers */
     .bgLayer{
       position:absolute; inset:0;
-      background-size: cover;
-      background-position: center center;
-      background-repeat: no-repeat;
-      background-color:#000;
-
       will-change: opacity;
       transition: opacity 620ms ease;
       opacity: 0;
     }
     .bgLayer.is-visible{ opacity: 1; }
+
+    /* === NEW: two-layer background system ===
+       bgFill = cover + blur (fills screen)
+       bgMain = contain (shows full image, no crop)
+    */
+    .bgFill{
+      position:absolute;
+      inset:-40px;                 /* prevents blur edges */
+      background-size: cover;
+      background-position: center center;
+      background-repeat: no-repeat;
+      filter: blur(22px);
+      transform: scale(1.1);
+      opacity: .9;
+    }
+    .bgMain{
+      position:absolute;
+      inset:0;
+      background-size: contain;    /* FULL IMAGE, NO CROP */
+      background-position: center center;
+      background-repeat: no-repeat;
+    }
 
     .bgOverlay{
       position:absolute; inset:0;
@@ -165,7 +182,7 @@
     .card p{ margin:0; line-height: 1.7; font-size: 14px; color:#222; }
 
     @media (max-width: 900px){
-      .step{ min-height: 135vh; }  /* more scroll distance on mobile */
+      .step{ min-height: 135vh; }
       .card{ width: 320px; bottom: 16px; }
     }
     @media (max-width: 420px){
@@ -197,8 +214,16 @@
   </header>
 
   <div class="bgStage" aria-hidden="true">
-    <div class="bgLayer is-visible" id="bgA"></div>
-    <div class="bgLayer" id="bgB"></div>
+    <!-- NEW: bg layers now contain bgFill + bgMain -->
+    <div class="bgLayer is-visible" id="bgA">
+      <div class="bgFill"></div>
+      <div class="bgMain"></div>
+    </div>
+    <div class="bgLayer" id="bgB">
+      <div class="bgFill"></div>
+      <div class="bgMain"></div>
+    </div>
+
     <div class="bgOverlay"></div>
   </div>
 
@@ -274,14 +299,22 @@
     let front = bgA, back = bgB;
     let currentIdx = -1;
 
+    function clamp01(x){ return Math.max(0, Math.min(1, x)); }
+
+    // NEW: apply image to both bgFill + bgMain (no crop + nice fill)
+    function setLayerImage(layerEl, url){
+      const fill = layerEl.querySelector(".bgFill");
+      const main = layerEl.querySelector(".bgMain");
+      if (fill) fill.style.backgroundImage = `url("${url}")`;
+      if (main) main.style.backgroundImage = `url("${url}")`;
+    }
+
     function crossFadeTo(url){
-      back.style.backgroundImage = `url("${url}")`;
+      setLayerImage(back, url);
       back.classList.add("is-visible");
       front.classList.remove("is-visible");
       const tmp = front; front = back; back = tmp;
     }
-
-    function clamp01(x){ return Math.max(0, Math.min(1, x)); }
 
     function setTimelineUI(idx){
       const s = SCENES[idx];
@@ -298,7 +331,7 @@
       const s = SCENES[idx];
       if (idx !== currentIdx) {
         if (currentIdx === -1) {
-          front.style.backgroundImage = `url("${s.image}")`;
+          setLayerImage(front, s.image);
           front.classList.add("is-visible");
         } else {
           crossFadeTo(s.image);
@@ -308,14 +341,13 @@
       setTimelineUI(idx);
     }
 
-    // ===== Card fade timing (control here) =====
+    // ===== Card fade timing =====
     function setCardProgress(stepEl, progress){
       const card = stepEl.querySelector(".card");
       if (!card) return;
 
-      // Fade starts later and lasts longer (tweak these)
-      const hold = 0.78;     // fully visible until 78% of step
-      const fadeSpan = 0.28; // fade across next 28% of step
+      const hold = 0.78;
+      const fadeSpan = 0.28;
 
       let alpha = 1;
       if (progress > hold) {
@@ -324,7 +356,6 @@
       }
       alpha = Math.max(0.06, alpha);
 
-      // This tiny translate adds “floating up” feel; adjust -14px if you want
       card.style.opacity = String(alpha);
       card.style.transform = `translateY(${(1 - alpha) * -25}px)`;
     }
@@ -365,8 +396,8 @@
     function seekByClientX(clientX){
       const pct = getPctFromClientX(clientX);
       const idx = idxFromPct(pct);
-      setTimelineUI(idx);   // immediate UI response
-      scrollToStep(idx);    // actual navigation
+      setTimelineUI(idx);
+      scrollToStep(idx);
     }
 
     // Click on track
