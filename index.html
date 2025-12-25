@@ -199,13 +199,44 @@
     @media (max-width: 420px){
       .card{ width: calc(100% - 20px); }
     }
+    .topline-center{
+  justify-content: center;
+  text-align: center;
+  }
+
+  .headerText{
+    width: 100%;
+    display:flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .title{
+    font-weight: 900;
+    font-size: 26px;     /* bigger */
+    line-height: 1.2;
+  }
+  
+  .subtitle{
+    font-size: 13px;     /* small */
+    color: #666;
+    font-weight: 600;
+  }
+  @media (max-width: 900px){
+    .title{ font-size: 20px; }
+    .subtitle{ font-size: 12px; }
+  }
   </style>
 </head>
 
 <body>
   <header class="timeline-sticky">
-    <div class="topline">
-      <div class="title">ঢাকা: সংবাদপত্র অফিসে হামলা — স্ক্রল টাইমলাইন</div>
+    <div class="topline topline-center">
+      <div class="headerText">
+        <div class="title">ঢাকা: সংবাদপত্র অফিসে হামলা — স্ক্রল টাইমলাইন</div>
+        <div class="subtitle">এখানে ছোট সাবটাইটেল লিখুন (তারিখ/সূত্র/সংক্ষিপ্ত বর্ণনা)</div>
+      </div>
     </div>
 
     <div class="timeline-wrap" id="timelineWrap">
