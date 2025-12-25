@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="bn">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Scrollytelling Timeline - Full Background</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    body { margin:0; font-family:"Noto Sans Bengali", system-ui, sans-serif; background:#000; }
+
+    /* Sticky timeline header */
+    .timeline-sticky{
+      position: sticky; top: 0; z-index: 50;
+      background:#fff;
+      border-bottom: 1px solid #eee;
+      padding: 14px 16px 10px;
+    }
+    .topline{ display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    .title{ font-weight: 800; }
+
+    .timeline-wrap{ position: relative; height: 72px; margin-top: 10px; }
+    .track{ position:absolute; left:0; right:0; top:28px; height:6px; border-radius:999px; background:#eee; }
+    .progress{ position:absolute; left:0; top:28px; height:6px; border-radius:999px; background:#111; width:0%; transition: width 240ms ease; }
+    .playhead{ position:absolute; top:18px; left:0%; width:18px; height:18px; border-radius:50%; background:#111; transform:translateX(-50%); transition:left 240ms ease; }
+
+    .ticks{ position:absolute; left:0; right:0; top:20px; height:24px; pointer-events:none; }
+    .tick{ position:absolute; top:0; width:10px; height:24px; transform:translateX(-50%); display:flex; align-items:flex-end; justify-content:center; }
+    .tick::before{ content:""; width:2px; height:14px; border-radius:2px; background:#bbb; }
+    .tick.is-active::before{ background:#111; height:18px; }
+
+    .activeTimeCenter{
+      position:absolute; left:50%; top:46px; transform:translateX(-50%);
+      font-size: 13px; color:#444; font-weight:600; white-space:nowrap;
+    }
+
+    .labels{ margin-top: 8px; display:flex; justify-content:space-between; font-size:12px; color:#666; }
+
+    /* FULL-BLEED BACKGROUND IMAGE LAYER */
+    .bgStage{
+      position: sticky;
+      top: 108px; /* below header */
+      height: calc(100dvh - 126px);
+      z-index: 1;
+      background: #111;
+      background-size: cover;
+      background-position: center;
+      transition: background-image 200ms ease;
+    }
+    @supports not (height: 100dvh){
+      .bgStage{ height: calc(100vh - 126px); }
+    }
+
+    /* overlay for readability */
+    .bgOverlay{
+      position:absolute; inset:0;
+      background: linear-gradient(
+        to bottom,
+        rgba(0,0,0,.40) 0%,
+        rgba(0,0,0,.55) 40%,
+        rgba(0,0,0,.70) 100%
+      );
+    }
+
+    /* Scrolling text layer */
+    .scrolly{
+      position: relative;
+      z-index: 2; /* above background */
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 18px 16px 80px;
+    }
+
+    .step{
+      background: rgba(255,255,255,.92);
+      border: 1px solid rgba(255,255,255,.6);
+      border-radius: 16px;
+      padding: 18px;
+      margin: 0 0 18px 0;
+      min-height: 65vh;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      box-shadow: 0 10px 24px rgba(0,0,0,.12);
+      backdrop-filter: blur(4px);
+    }
+    .step.is-active{
+      border-color:#111;
+      box-shadow: 0 16px 34px rgba(0,0,0,.18);
+    }
+    .when{ color:#666; font-size:12px; margin-bottom:10px; }
+    h3{ margin:0 0 10px 0; font-size:20px; }
+    p{ margin:0; line-height:1.75; color:#222; }
+
+    /* Give some breathing room before the first step */
+    .spacerTop{ height: 10px; }
+
+    @media (max-width: 900px){
+      .bgStage{ top: 92px; }
+      .step{ min-height: 70vh; }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="timeline-sticky">
+    <div class="topline">
+      <div class="title">ঢাকা: সংবাদপত্র অফিসে হামলা — স্ক্রল টাইমলাইন</div>
+    </div>
+
+    <div class="timeline-wrap">
+      <div class="track"></div>
+      <div class="progress" id="progress"></div>
+      <div class="playhead" id="playhead"></div>
+
+      <div class="ticks" id="ticks"></div>
+      <div class="activeTimeCenter" id="activeTime">সময়: —</div>
+    </div>
+
+    <div class="labels">
+      <span>১৮ ডিসেম্বর ১০:০০ PM</span>
+      <span>১৯ ডিসেম্বর ০৬:০০ PM</span>
+    </div>
+  </header>
+
+  <!-- Sticky background stage -->
+  <div class="bgStage" id="bgStage" aria-hidden="true">
+    <div class="bgOverlay"></div>
+  </div>
+
+  <!-- Scrolling text steps -->
+  <main class="scrolly">
+    <div class="spacerTop"></div>
+    <section id="steps"></section>
+  </main>
+
+  <script src="https://unpkg.com/scrollama"></script>
+  <script>
+    if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+    window.addEventListener("load", () => window.scrollTo(0, 0));
+
+    const SCENES = [
+      { id:"s1",  progress:0/11,  timeLabel:"১৮ ডিসেম্বর ১০:০২ PM", titleBn:"প্রথম আহ্বান দেখা যায়",
+        longText:"ডামি লং টেক্সট: এই পর্যায়ে বিভিন্ন পোস্টে উসকানিমূলক ভাষা ধরা পড়তে শুরু করে। ...",
+        image:"assets/scene1.jpg"
+      },
+      { id:"s2",  progress:1/11,  timeLabel:"১৮ ডিসেম্বর ১০:২০ PM", titleBn:"বার্তা ছড়াতে শুরু",
+        longText:"ডামি লং টেক্সট: একাধিক গ্রুপ ও পেজে একই বক্তব্য কপি-পেস্ট হয়ে ছড়াতে থাকে। ...",
+        image:"assets/scene2.jpg"
+      },
+      { id:"s3",  progress:2/11,  timeLabel:"১৮ ডিসেম্বর ১০:৪০ PM", titleBn:"বৈধতা দেওয়ার ভাষা",
+        longText:"ডামি লং টেক্সট: ‘প্রাপ্য ছিল’, ‘ঠিক হয়েছে’— এমন যুক্তি দিয়ে ঘটনাকে বৈধতা দেওয়ার প্রবণতা জোরালো হয়। ...",
+        image:"assets/scene3.jpg"
+      },
+      { id:"s4",  progress:3/11,  timeLabel:"১৮ ডিসেম্বর ১১:০৫ PM", titleBn:"লক্ষ্য নির্ধারণ/ট্যাগিং",
+        longText:"ডামি লং টেক্সট: নির্দিষ্ট ব্যক্তি/প্রতিষ্ঠানের নাম উল্লেখ করে পোস্ট বাড়ে। ...",
+        image:"assets/scene4.jpg"
+      },
+      { id:"s5",  progress:4/11,  timeLabel:"১৮ ডিসেম্বর ১১:৩০ PM", titleBn:"কলে টু অ্যাকশন",
+        longText:"ডামি লং টেক্সট: ‘চল’, ‘এখনই’, ‘যেতে হবে’— এমন ভাষা দেখা যায়। ...",
+        image:"assets/scene5.jpg"
+      },
+      { id:"s6",  progress:5/11,  timeLabel:"১৮ ডিসেম্বর ১১:৪৫ PM", titleBn:"ছবি/ভিডিও ছড়ায়",
+        longText:"ডামি লং টেক্সট: ভিডিও/ছবি শেয়ার বাড়তে থাকে। ...",
+        image:"assets/scene6.jpg"
+      },
+      { id:"s7",  progress:6/11,  timeLabel:"১৯ ডিসেম্বর ১২:৩০ AM", titleBn:"গুজব/দাবি যোগ",
+        longText:"ডামি লং টেক্সট: যাচাইহীন দাবি, অতিরঞ্জিত সংখ্যা/ঘটনা যুক্ত হতে থাকে। ...",
+        image:"assets/scene7.jpg"
+      },
+      { id:"s8",  progress:7/11,  timeLabel:"১৯ ডিসেম্বর ০২:১৫ AM", titleBn:"মিম/ব্যঙ্গ",
+        longText:"ডামি লং টেক্সট: মিম, ব্যঙ্গচিত্র এবং ক্যাপশন-ভিত্তিক কনটেন্ট দ্রুত ছড়ায়। ...",
+        image:"assets/scene8.jpg"
+      },
+      { id:"s9",  progress:8/11,  timeLabel:"১৯ ডিসেম্বর ০৭:৩০ AM", titleBn:"প্রতিরোধী কণ্ঠ",
+        longText:"ডামি লং টেক্সট: কিছু পোস্ট হামলার বিরোধিতা করে শান্ত থাকার আহ্বান জানায়। ...",
+        image:"assets/scene9.jpg"
+      },
+      { id:"s10", progress:9/11,  timeLabel:"১৯ ডিসেম্বর ০৯:৩০ AM", titleBn:"উদযাপন ও পুনঃশেয়ার",
+        longText:"ডামি লং টেক্সট: কিছু পোস্ট উদযাপনধর্মী ভাষা ব্যবহার করে, রি-শেয়ার বাড়ে। ...",
+        image:"assets/scene10.jpg"
+      },
+      { id:"s11", progress:10/11, timeLabel:"১৯ ডিসেম্বর ০১:৪৫ PM", titleBn:"বিতর্ক/পাল্টাপাল্টি",
+        longText:"ডামি লং টেক্সট: কমেন্টে তর্ক, পাল্টা অভিযোগ এবং স্ক্রিনশট-যুদ্ধ দেখা যায়। ...",
+        image:"assets/scene11.jpg"
+      },
+      { id:"s12", progress:11/11, timeLabel:"১৯ ডিসেম্বর ০৬:০০ PM", titleBn:"শেষ পর্যায়",
+        longText:"ডামি লং টেক্সট: সমর্থন/বিরোধিতা/উদযাপন— সবধরনের প্রতিক্রিয়া স্থিতিশীল হয়। ...",
+        image:"assets/scene12.jpg"
+      }
+    ];
+
+    // Build steps
+    const stepsRoot = document.getElementById("steps");
+    SCENES.forEach((s, idx) => {
+      const el = document.createElement("div");
+      el.className = "step";
+      el.dataset.index = idx;
+      el.innerHTML = `
+        <div class="when">${s.timeLabel}</div>
+        <h3>${s.titleBn}</h3>
+        <p>${escapeHtml(s.longText)}</p>
+      `;
+      stepsRoot.appendChild(el);
+    });
+
+    // Build ticks
+    const ticksRoot = document.getElementById("ticks");
+    const tickEls = [];
+    SCENES.forEach((s) => {
+      const t = document.createElement("div");
+      t.className = "tick";
+      t.style.left = (Math.max(0, Math.min(1, s.progress)) * 100) + "%";
+      ticksRoot.appendChild(t);
+      tickEls.push(t);
+    });
+
+    const bgStage = document.getElementById("bgStage");
+    const playhead = document.getElementById("playhead");
+    const progressBar = document.getElementById("progress");
+    const activeTime = document.getElementById("activeTime");
+
+    function renderScene(idx){
+      const s = SCENES[idx];
+      const pct = Math.max(0, Math.min(1, s.progress)) * 100;
+
+      // Update background image (mobile-safe)
+      bgStage.style.backgroundImage = `url("${s.image}")`;
+
+      // Update timeline UI
+      playhead.style.left = pct + "%";
+      progressBar.style.width = pct + "%";
+      tickEls.forEach(x => x.classList.remove("is-active"));
+      tickEls[idx]?.classList.add("is-active");
+      activeTime.textContent = "সময়: " + (s.timeLabel || "—");
+    }
+
+    const scroller = scrollama();
+    scroller.setup({ step: ".step", offset: 0.6 })
+      .onStepEnter(({ element, index }) => {
+        document.querySelectorAll(".step").forEach(x => x.classList.remove("is-active"));
+        element.classList.add("is-active");
+        renderScene(index);
+      });
+
+    // initial
+    renderScene(0);
+    document.querySelector(".step")?.classList.add("is-active");
+
+    // resize fixes for mobile
+    function onResize(){ scroller.resize(); }
+    window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", onResize);
+    setTimeout(onResize, 50);
+    setTimeout(onResize, 300);
+
+    function escapeHtml(str){
+      return String(str ?? "").replace(/[&<>"']/g, ch => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+      }[ch]));
+    }
+  </script>
+</body>
+</html>
