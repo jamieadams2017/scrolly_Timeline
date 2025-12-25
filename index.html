@@ -88,13 +88,17 @@
 
     .bgLayer{
       position:absolute; inset:0;
-      background-size: contain;
+      
+      background-image: var(--bg);
       background-repeat: no-repeat;
       background-position: center center;
-      background-color: #000;
+
+      background-size: auto 140%;
+      background-color:#000;
+
       will-change: opacity;
       transition: opacity 520ms ease;
-      opacity: 0;
+      opacity:0;
     }
     .bgLayer.is-visible{ opacity: 1; }
 
