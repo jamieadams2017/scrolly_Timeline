@@ -3,15 +3,18 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Scrollytelling Timeline (Full-screen BG, Mobile-safe)</title>
+  <title>Scrollytelling Timeline (1600×2000, Fullscreen, Interactive)</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&display=swap" rel="stylesheet">
 
   <style>
+    :root{ --headerH: 112px; }
+    @media (max-width: 900px){ :root{ --headerH: 96px; } }
+
     body { margin:0; font-family:"Noto Sans Bengali", system-ui, sans-serif; background:#000; }
 
-    /* Sticky timeline header */
+    /* ===== Sticky timeline header ===== */
     .timeline-sticky{
       position: sticky; top: 0; z-index: 50;
       background:#fff;
@@ -28,6 +31,7 @@
       touch-action: pan-y;
       user-select: none;
     }
+
     .track{
       position:absolute; left:0; right:0; top:28px;
       height:6px; border-radius:999px; background:#eee;
@@ -54,7 +58,7 @@
     .ticks{ position:absolute; left:0; right:0; top:20px; height:24px; }
     .tick{
       position:absolute; top:0;
-      width: 18px; height: 24px; /* bigger hit area */
+      width: 18px; height: 24px;               /* bigger hit area */
       transform: translateX(-50%);
       display:flex; align-items:flex-end; justify-content:center;
       cursor:pointer;
@@ -70,32 +74,31 @@
       font-size: 13px; color:#444; font-weight:600; white-space:nowrap;
       pointer-events:none;
     }
-
     .labels{ margin-top: 8px; display:flex; justify-content:space-between; font-size:12px; color:#666; }
 
-    /* ===== Background stage (mobile-safe viewport units) ===== */
+    /* ===== Background stage (fills remaining viewport, stable on mobile) ===== */
     .bgStage{
       position: sticky;
-      top: 108px;                 /* below header */
-      height: calc(100svh - 126px); /* stable on mobile (prevents top black gap) */
+      top: var(--headerH);
+      height: calc(100svh - var(--headerH));
       z-index: 1;
       overflow: hidden;
       background:#000;
     }
     @supports not (height: 100svh){
-      .bgStage{ height: calc(100vh - 126px); }
+      .bgStage{ height: calc(100vh - var(--headerH)); }
     }
 
-    /* ===== Cross-fade background layers (FULLSCREEN via cover) ===== */
+    /* Crossfade layers (FULLSCREEN) */
     .bgLayer{
       position:absolute; inset:0;
-      background-size: cover;              /* <-- IMPORTANT: fills screen */
-      background-position: center center;  /* consistent crop */
+      background-size: cover;
+      background-position: center center;
       background-repeat: no-repeat;
       background-color:#000;
 
       will-change: opacity;
-      transition: opacity 520ms ease;
+      transition: opacity 620ms ease;
       opacity: 0;
     }
     .bgLayer.is-visible{ opacity: 1; }
@@ -104,15 +107,15 @@
       position:absolute; inset:0;
       background: linear-gradient(
         to bottom,
-        rgba(0,0,0,.18) 0%,
-        rgba(0,0,0,.40) 45%,
-        rgba(0,0,0,.66) 100%
+        rgba(0,0,0,.16) 0%,
+        rgba(0,0,0,.40) 48%,
+        rgba(0,0,0,.68) 100%
       );
       z-index: 3;
       pointer-events:none;
     }
 
-    /* Steps layer */
+    /* ===== Steps layer (scroll triggers) ===== */
     .scrolly{
       position: relative;
       z-index: 10;
@@ -136,7 +139,7 @@
       max-width: calc(100% - 32px);
       margin-right: auto;
 
-      background: rgba(240,240,240,.80);
+      background: rgba(240,240,240,.82);
       border: 1px solid rgba(255,255,255,.55);
       border-radius: 18px;
       padding: 14px 14px 16px;
@@ -162,8 +165,7 @@
     .card p{ margin:0; line-height: 1.7; font-size: 14px; color:#222; }
 
     @media (max-width: 900px){
-      .bgStage{ top: 92px; }      /* header is shorter on mobile */
-      .step{ min-height: 135vh; } /* more scroll distance */
+      .step{ min-height: 135vh; }  /* more scroll distance on mobile */
       .card{ width: 320px; bottom: 16px; }
     }
     @media (max-width: 420px){
@@ -181,7 +183,8 @@
     <div class="timeline-wrap" id="timelineWrap">
       <div class="track" id="track" aria-label="Timeline track"></div>
       <div class="progress" id="progress"></div>
-      <div class="playhead" id="playhead" role="slider" aria-label="Timeline playhead"
+      <div class="playhead" id="playhead"
+           role="slider" aria-label="Timeline playhead"
            aria-valuemin="0" aria-valuemax="11" aria-valuenow="0" tabindex="0"></div>
       <div class="ticks" id="ticks"></div>
       <div class="activeTimeCenter" id="activeTime">সময়: —</div>
@@ -205,63 +208,30 @@
 
   <script src="https://unpkg.com/scrollama"></script>
   <script>
+    // Prevent mobile “jump to last scroll position”
     if ("scrollRestoration" in history) history.scrollRestoration = "manual";
     window.addEventListener("load", () => window.scrollTo(0, 0));
 
-    // ===== DATA (edit these) =====
-    // Use your *_master.jpg images here
+    // =========================
+    // EDIT ONLY THIS ARRAY
+    // images are 1600x2000 (4:5)
+    // =========================
     const SCENES = [
-      { id:"s1",  progress:0/11,  timeLabel:"১৮ ডিসেম্বর ১০:০২ PM", titleBn:"শিরোনাম ১",
-        longText:"এখানে আপনার বিস্তারিত টেক্সট থাকবে (স্টেপ ১)।",
-        image:"assets/scene1.jpg"
-      },
-      { id:"s2",  progress:1/11,  timeLabel:"১৮ ডিসেম্বর ১০:২০ PM", titleBn:"শিরোনাম ২",
-        longText:"এখানে আপনার বিস্তারিত টেক্সট থাকবে (স্টেপ ২)।",
-        image:"assets/scene2.jpg"
-      },
-      { id:"s3",  progress:2/11,  timeLabel:"১৮ ডিসেম্বর ১০:৪০ PM", titleBn:"শিরোনাম ৩",
-        longText:"এখানে আপনার বিস্তারিত টেক্সট থাকবে (স্টেপ ৩)।",
-        image:"assets/scene3.jpg"
-      },
-      { id:"s4",  progress:3/11,  timeLabel:"১৮ ডিসেম্বর ১১:০৫ PM", titleBn:"শিরোনাম ৪",
-        longText:"এখানে আপনার বিস্তারিত টেক্সট থাকবে (স্টেপ ৪)।",
-        image:"assets/scene4.jpg"
-      },
-      { id:"s5",  progress:4/11,  timeLabel:"১৮ ডিসেম্বর ১১:৩০ PM", titleBn:"শিরোনাম ৫",
-        longText:"এখানে আপনার বিস্তারিত টেক্সট থাকবে (স্টেপ ৫)।",
-        image:"assets/scene5.jpg"
-      },
-      { id:"s6",  progress:5/11,  timeLabel:"১৮ ডিসেম্বর ১১:৪৫ PM", titleBn:"শিরোনাম ৬",
-        longText:"এখানে আপনার বিস্তারিত টেক্সট থাকবে (স্টেপ ৬)।",
-        image:"assets/scene6.jpg"
-      },
-      { id:"s7",  progress:6/11,  timeLabel:"১৯ ডিসেম্বর ১২:৩০ AM", titleBn:"শিরোনাম ৭",
-        longText:"এখানে আপনার বিস্তারিত টেক্সট থাকবে (স্টেপ ৭)।",
-        image:"assets/scene7.jpg"
-      },
-      { id:"s8",  progress:7/11,  timeLabel:"১৯ ডিসেম্বর ০২:১৫ AM", titleBn:"শিরোনাম ৮",
-        longText:"এখানে আপনার বিস্তারিত টেক্সট থাকবে (স্টেপ ৮)।",
-        image:"assets/scene8.jpg"
-      },
-      { id:"s9",  progress:8/11,  timeLabel:"১৯ ডিসেম্বর ০৭:৩০ AM", titleBn:"শিরোনাম ৯",
-        longText:"এখানে আপনার বিস্তারিত টেক্সট থাকবে (স্টেপ ৯)।",
-        image:"assets/scene9.jpg"
-      },
-      { id:"s10", progress:9/11,  timeLabel:"১৯ ডিসেম্বর ০৯:৩০ AM", titleBn:"শিরোনাম ১০",
-        longText:"এখানে আপনার বিস্তারিত টেক্সট থাকবে (স্টেপ ১০)।",
-        image:"assets/scene10.jpg"
-      },
-      { id:"s11", progress:10/11, timeLabel:"১৯ ডিসেম্বর ০১:৪৫ PM", titleBn:"শিরোনাম ১১",
-        longText:"এখানে আপনার বিস্তারিত টেক্সট থাকবে (স্টেপ ১১)।",
-        image:"assets/scene11.jpg"
-      },
-      { id:"s12", progress:11/11, timeLabel:"১৯ ডিসেম্বর ০৬:০০ PM", titleBn:"শিরোনাম ১২",
-        longText:"এখানে আপনার বিস্তারিত টেক্সট থাকবে (স্টেপ ১২)।",
-        image:"assets/scene12.jpg"
-      }
+      { id:"s1",  progress:0/11,  timeLabel:"১৮ ডিসেম্বর ১০:০২ PM", titleBn:"শিরোনাম ১", longText:"ডামি লং টেক্সট (১)", image:"assets/scene1.jpg"  },
+      { id:"s2",  progress:1/11,  timeLabel:"১৮ ডিসেম্বর ১০:২০ PM", titleBn:"শিরোনাম ২", longText:"ডামি লং টেক্সট (২)", image:"assets/scene2.jpg"  },
+      { id:"s3",  progress:2/11,  timeLabel:"১৮ ডিসেম্বর ১০:৪০ PM", titleBn:"শিরোনাম ৩", longText:"ডামি লং টেক্সট (৩)", image:"assets/scene3.jpg"  },
+      { id:"s4",  progress:3/11,  timeLabel:"১৮ ডিসেম্বর ১১:০৫ PM", titleBn:"শিরোনাম ৪", longText:"ডামি লং টেক্সট (৪)", image:"assets/scene4.jpg"  },
+      { id:"s5",  progress:4/11,  timeLabel:"১৮ ডিসেম্বর ১১:৩০ PM", titleBn:"শিরোনাম ৫", longText:"ডামি লং টেক্সট (৫)", image:"assets/scene5.jpg"  },
+      { id:"s6",  progress:5/11,  timeLabel:"১৮ ডিসেম্বর ১১:৪৫ PM", titleBn:"শিরোনাম ৬", longText:"ডামি লং টেক্সট (৬)", image:"assets/scene6.jpg"  },
+      { id:"s7",  progress:6/11,  timeLabel:"১৯ ডিসেম্বর ১২:৩০ AM", titleBn:"শিরোনাম ৭", longText:"ডামি লং টেক্সট (৭)", image:"assets/scene7.jpg"  },
+      { id:"s8",  progress:7/11,  timeLabel:"১৯ ডিসেম্বর ০২:১৫ AM", titleBn:"শিরোনাম ৮", longText:"ডামি লং টেক্সট (৮)", image:"assets/scene8.jpg"  },
+      { id:"s9",  progress:8/11,  timeLabel:"১৯ ডিসেম্বর ০৭:৩০ AM", titleBn:"শিরোনাম ৯", longText:"ডামি লং টেক্সট (৯)", image:"assets/scene9.jpg"  },
+      { id:"s10", progress:9/11,  timeLabel:"১৯ ডিসেম্বর ০৯:৩০ AM", titleBn:"শিরোনাম ১০", longText:"ডামি লং টেক্সট (১০)", image:"assets/scene10.jpg" },
+      { id:"s11", progress:10/11, timeLabel:"১৯ ডিসেম্বর ০১:৪৫ PM", titleBn:"বিতর্ক/পাল্টাপাল্টি", longText:"ডামি লং টেক্সট (১১)", image:"assets/scene11.jpg" },
+      { id:"s12", progress:11/11, timeLabel:"১৯ ডিসেম্বর ০৬:০০ PM", titleBn:"শেষ পর্যায়", longText:"ডামি লং টেক্সট (১২)", image:"assets/scene12.jpg" }
     ];
 
-    // ===== BUILD STEPS =====
+    // ===== Build steps (scroll triggers) =====
     const stepsRoot = document.getElementById("steps");
     SCENES.forEach((s, idx) => {
       const el = document.createElement("div");
@@ -277,7 +247,7 @@
       stepsRoot.appendChild(el);
     });
 
-    // ===== TICKS =====
+    // ===== Build ticks =====
     const ticksRoot = document.getElementById("ticks");
     const tickEls = [];
     SCENES.forEach((s, idx) => {
@@ -298,7 +268,7 @@
     const progressBar = document.getElementById("progress");
     const activeTime = document.getElementById("activeTime");
 
-    // ===== BG crossfade =====
+    // ===== Background crossfade =====
     const bgA = document.getElementById("bgA");
     const bgB = document.getElementById("bgB");
     let front = bgA, back = bgB;
@@ -326,7 +296,6 @@
 
     function renderScene(idx){
       const s = SCENES[idx];
-
       if (idx !== currentIdx) {
         if (currentIdx === -1) {
           front.style.backgroundImage = `url("${s.image}")`;
@@ -336,17 +305,17 @@
         }
         currentIdx = idx;
       }
-
       setTimelineUI(idx);
     }
 
-    // ===== Card fade timing (EDIT HERE) =====
+    // ===== Card fade timing (control here) =====
     function setCardProgress(stepEl, progress){
       const card = stepEl.querySelector(".card");
       if (!card) return;
 
-      const hold = 0.78;      // visible until 78% of the step
-      const fadeSpan = 0.28;  // fade between 78%..~100%
+      // Fade starts later and lasts longer (tweak these)
+      const hold = 0.78;     // fully visible until 78% of step
+      const fadeSpan = 0.28; // fade across next 28% of step
 
       let alpha = 1;
       if (progress > hold) {
@@ -355,6 +324,7 @@
       }
       alpha = Math.max(0.06, alpha);
 
+      // This tiny translate adds “floating up” feel; adjust -14px if you want
       card.style.opacity = String(alpha);
       card.style.transform = `translateY(${(1 - alpha) * -14}px)`;
     }
@@ -395,15 +365,17 @@
     function seekByClientX(clientX){
       const pct = getPctFromClientX(clientX);
       const idx = idxFromPct(pct);
-      setTimelineUI(idx);
-      scrollToStep(idx);
+      setTimelineUI(idx);   // immediate UI response
+      scrollToStep(idx);    // actual navigation
     }
 
+    // Click on track
     track.addEventListener("pointerdown", (e) => {
       track.setPointerCapture(e.pointerId);
       seekByClientX(e.clientX);
     });
 
+    // Drag playhead
     playhead.addEventListener("pointerdown", (e) => {
       isDragging = true;
       playhead.setPointerCapture(e.pointerId);
@@ -430,18 +402,21 @@
       const pct = getPctFromClientX(e.clientX);
       scrollToStep(idxFromPct(pct));
     });
+
     playhead.addEventListener("pointercancel", () => { isDragging = false; });
 
+    // Keyboard support
     playhead.addEventListener("keydown", (e) => {
       const active = Number(playhead.getAttribute("aria-valuenow") || "0");
       if (e.key === "ArrowRight") { e.preventDefault(); scrollToStep(Math.min(SCENES.length-1, active+1)); }
       if (e.key === "ArrowLeft")  { e.preventDefault(); scrollToStep(Math.max(0, active-1)); }
     });
 
-    // Initial
+    // Initial render
     renderScene(0);
     document.querySelector(".step")?.classList.add("is-active");
 
+    // Resize stability
     function onResize(){ scroller.resize(); }
     window.addEventListener("resize", onResize);
     window.addEventListener("orientationchange", onResize);
